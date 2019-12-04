@@ -1,4 +1,3 @@
 *.*
 .*
-!client/index.*
-!server/index.*
+!dist/index.*
