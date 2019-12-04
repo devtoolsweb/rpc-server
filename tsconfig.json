@@ -19,5 +19,5 @@
     "stripInternal": true,
     "target": "es6"
   },
-  "include": ["lib"]
+  "include": ["examples", "lib"]
 }

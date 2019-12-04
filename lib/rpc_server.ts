@@ -125,7 +125,7 @@ export class RpcServer extends EventEmitter implements IRpcServer {
   // TODO: Emit event 'connect'
   async start () {
     await this.ensureInitialized()
-    this.wss.on('connection', (ws, req: IncomingMessage) => {
+    this.wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
       const session = this.getSession(ws, req)
       session.isAlive = true
       ws.on('message', (m: string) => {

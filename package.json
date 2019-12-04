@@ -21,10 +21,10 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "rollup -c && npm run build-dts",
-    "build-dts": "make-dts-bundle -b build",
+    "build-dts": "make-dts-bundle",
     "build-production": "BUILD=production npm run build",
     "clean": "rm -rf build dist",
-    "example-server": "ts-node examples/test_server",
+    "test-server": "ts-node examples/test_server",
     "prepare": "npm run clean && npm run build-production"
   },
   "types": "dist/index.d.ts",
