@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "declaration": true,
+    "declarationDir": "build",
+    "downlevelIteration": true,
+    "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
+    "inlineSources": true,
+    "lib": ["es2019", "es2019.object"],
+    "moduleResolution": "node",
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "outDir": "build",
+    "sourceMap": true,
+    "sourceRoot": "./",
+    "strict": true,
+    "stripInternal": true,
+    "target": "es6"
+  },
+  "include": ["lib"]
+}

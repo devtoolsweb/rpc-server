@@ -1,0 +1,4 @@
+*.*
+.*
+!client/index.*
+!server/index.*
