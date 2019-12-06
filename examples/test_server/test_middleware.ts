@@ -10,7 +10,7 @@ export class TestMiddleware extends RpcMiddleware {
     return new RpcStandardResult<string>({
       id: message.id,
       status: 'success',
-      value: `This is a test string: ${message.args.hello}`
+      value: `This is a test string: ${message.args.hello}:${Math.random()}`
     })
   }
 }

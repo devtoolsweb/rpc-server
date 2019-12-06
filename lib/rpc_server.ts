@@ -26,15 +26,10 @@ export interface IRpcServerResultEvent extends IRpcServerEvent {
   readonly result: IRpcResult
 }
 
-export interface IRpcServerVerifyClientEvent extends IRpcServerEvent {
-  readonly info: IVerifyClientInfo
-}
-
 export interface IRpcServerEvents extends IBaseEvents {
   readonly connect: (event: IBaseRpcServerEvent) => void
   readonly error: (event: IRpcServerErrorEvent) => void
   readonly result: (event: IRpcServerResultEvent) => void
-  readonly verifyClient: (event: IRpcServerVerifyClientEvent) => void
 }
 
 export interface IRpcServer extends ITypedEventEmitter<IRpcServerEvents> {
@@ -48,12 +43,6 @@ export interface IRpcServerParams {
   heartbeatTimeout?: number
   host?: string
   port?: number
-}
-
-interface IVerifyClientInfo {
-  origin: string
-  secure: boolean
-  req: IncomingMessage
 }
 
 export class BaseRpcServer {}
@@ -84,8 +73,7 @@ export class RpcServer
     this.port = p.port || RpcServer.standardPort
     this.wss = new WebSocket.Server({
       host: this.host,
-      port: this.port,
-      verifyClient: this.verifyClient.bind(this)
+      port: this.port
     })
     this.heartbeatTimeout = Math.min(
       p.heartbeatTimeout || RpcServer.standardHeartbeatTimeout,
@@ -125,16 +113,31 @@ export class RpcServer
 
   async start () {
     await this.ensureInitialized()
-    this.wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
+    this.wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
+      this.emit('connect', { server: this })
       const session = this.getSession(ws, req)
       session.isAlive = true
-      ws.on('message', (m: string) => {
-        const rpcMessage = JSON.parse(m)
-        this.dispatchMessage(ws, rpcMessage)
+      ws.on('message', async (m: string) => {
+        if (!session.isAuthentic) {
+          await this.authenticateSession(session)
+        }
+        const rpcMessage: IRpcMessage = JSON.parse(m)
+        if (session.isAuthentic) {
+          await this.dispatchMessage(ws, rpcMessage)
+        } else {
+          ws.send(
+            JSON.stringify(
+              new RpcResult({
+                comment: 'Session not authenticated',
+                id: rpcMessage.id,
+                status: 'failed'
+              })
+            )
+          )
+        }
       }).on('pong', () => {
         session.isAlive = true
       })
-      this.emit('connect', { server: this })
     })
     const hb = () => {
       this.deleteBrokenSessions()
@@ -152,11 +155,8 @@ export class RpcServer
     this.wss.close()
   }
 
-  protected async verifyClient (info: IVerifyClientInfo): Promise<boolean> {
-    if (!info.secure) {
-      this.emit('verifyClient', { server: this, info })
-    }
-    return true
+  protected async authenticateSession (s: IRpcSession) {
+    s.isAuthentic = true
   }
 
   private deleteBrokenSessions (): void {
