@@ -9,8 +9,8 @@ export class TestMiddleware extends RpcMiddleware {
   async testMethod (message: IRpcMessage): Promise<IRpcStandardResult<string>> {
     return new RpcStandardResult<string>({
       id: message.id,
-      status: 'OK',
-      value: 'This is a test string'
+      status: 'success',
+value: 'This is a test string'
     })
   }
 }

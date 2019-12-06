@@ -1,8 +1,6 @@
 import { IRpcMessage, IRpcResult, RpcResult } from '@aperos/rpc-common'
 
-export type RpcMessageHandler = (
-  message: IRpcMessage
-) => Promise<IRpcResult | null>
+export type RpcMessageHandler = (m: IRpcMessage) => Promise<IRpcResult | null>
 
 export interface IRpcMiddlewareParams {
   allMiddlewares: Map<string, IRpcMiddleware>
@@ -12,32 +10,30 @@ export interface IRpcMiddlewareParams {
 export interface IRpcMiddleware {
   handleMessage(message: IRpcMessage): Promise<IRpcResult | null>
   getPropertyValue(name: string): Promise<any>
-  setup(p: IRpcMiddlewareParams): void
+  setup(p: IRpcMiddlewareParams): Promise<void>
 }
 
 export class RpcMiddleware implements IRpcMiddleware {
-  private $allMiddlewares?: Map<string, IRpcMiddleware>
-  private $env?: Record<string, any>
+  private $allMiddlewares!: Map<string, IRpcMiddleware>
+  private $env!: Record<string, any>
 
-  async handleMessage (message: IRpcMessage): Promise<IRpcResult | null> {
-    const method = (this as any)[message.verb]
+  async handleMessage (msg: IRpcMessage): Promise<IRpcResult | null> {
+    const method = (this as any)[msg.verb]
     return method instanceof Function
-      ? (method as RpcMessageHandler).call(this, message)
+      ? (method as RpcMessageHandler).call(this, msg)
       : new RpcResult({
-          comment: `Unknown verb '${message.verb}' in namespace '${
-            message.namespace
-          }'`,
-          id: message.id,
-          status: 'Failed'
+          comment: `Unknown verb '${msg.verb}' in domain '${msg.domain}'`,
+          id: msg.id,
+          status: 'failed'
         })
   }
 
   protected get allMiddlewares () {
-    return this.$allMiddlewares!
+    return this.$allMiddlewares
   }
 
   protected get env () {
-    return this.$env!
+    return this.$env
   }
 
   async getPropertyValue (name: string): Promise<any> {

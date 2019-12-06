@@ -1,12 +1,19 @@
-import { EventEmitter } from 'events'
 import * as WebSocket from 'ws'
 import { IncomingMessage } from 'http'
+import {
+  EventEmitterMixin,
+  IBaseEvents,
+  ITypedEventEmitter
+} from '@aperos/event-emitter'
 import { IRpcMessage, RpcResult, IRpcResult } from '@aperos/rpc-common'
 import { IRpcMiddleware } from './rpc_middleware'
 import { IRpcSession, RpcSession } from './rpc_session'
 
-export interface IRpcServerEvent {
+export interface IBaseRpcServerEvent {
   readonly server: IRpcServer
+}
+
+export interface IRpcServerEvent extends IBaseRpcServerEvent {
   readonly rpcMessage?: IRpcMessage
   readonly ws?: WebSocket
 }
@@ -23,22 +30,15 @@ export interface IRpcServerVerifyClientEvent extends IRpcServerEvent {
   readonly info: IVerifyClientInfo
 }
 
-export interface IRpcServerListeners {
-  error: (event: IRpcServerErrorEvent) => void
-  result: (event: IRpcServerResultEvent) => void
-  verifyClient: (event: IRpcServerVerifyClientEvent) => void
+export interface IRpcServerEvents extends IBaseEvents {
+  readonly connect: (event: IBaseRpcServerEvent) => void
+  readonly error: (event: IRpcServerErrorEvent) => void
+  readonly result: (event: IRpcServerResultEvent) => void
+  readonly verifyClient: (event: IRpcServerVerifyClientEvent) => void
 }
 
-export interface IRpcServer extends EventEmitter {
+export interface IRpcServer extends ITypedEventEmitter<IRpcServerEvents> {
   addMiddleware(name: string, m: IRpcMiddleware): this
-  emit<K extends keyof IRpcServerListeners>(
-    eventName: K,
-    ...args: Parameters<IRpcServerListeners[K]>
-  ): boolean
-  on<K extends keyof IRpcServerListeners>(
-    eventName: K,
-    listener: IRpcServerListeners[K]
-  ): this
   start(): void
   stop(): void
 }
@@ -56,7 +56,11 @@ interface IVerifyClientInfo {
   req: IncomingMessage
 }
 
-export class RpcServer extends EventEmitter implements IRpcServer {
+export class BaseRpcServer {}
+
+export class RpcServer
+  extends EventEmitterMixin<IRpcServerEvents>(BaseRpcServer)
+  implements IRpcServer {
   static standardHost = 'localhost'
   static standardPort = 8301
   static standardHeartbeatTimeout = 30000
@@ -94,27 +98,24 @@ export class RpcServer extends EventEmitter implements IRpcServer {
     return this
   }
 
-  // TODO: Emit event 'message'
-  // TODO: Call error handler
   async dispatchMessage (ws: WebSocket, message: IRpcMessage) {
-    const m = this.middlewares.get(message.namespace)
-    const s = this as IRpcServer
+    const m = this.middlewares.get(message.domain)
     const result = m
       ? await m.handleMessage(message)
       : new RpcResult({
-          comment: `Unknown namespace: '${message.namespace}'`,
+          comment: `Unknown RPC message domain: '${message.domain}'`,
           id: message.id,
-          status: 'Failed'
+          status: 'failed'
         })
     try {
       ws.send(JSON.stringify(result))
-      s.emit('result', {
+      this.emit('result', {
         result: result!,
         server: this
       })
     } catch (e) {
       this.deleteBrokenSessions()
-      s.emit('error', {
+      this.emit('error', {
         server: this,
         errorDescription: `Error sending message to client -- ${e.message}`,
         rpcMessage: message
@@ -122,7 +123,6 @@ export class RpcServer extends EventEmitter implements IRpcServer {
     }
   }
 
-  // TODO: Emit event 'connect'
   async start () {
     await this.ensureInitialized()
     this.wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
@@ -134,6 +134,7 @@ export class RpcServer extends EventEmitter implements IRpcServer {
       }).on('pong', () => {
         session.isAlive = true
       })
+      this.emit('connect', { server: this })
     })
     const hb = () => {
       this.deleteBrokenSessions()
@@ -153,7 +154,7 @@ export class RpcServer extends EventEmitter implements IRpcServer {
 
   protected async verifyClient (info: IVerifyClientInfo): Promise<boolean> {
     if (!info.secure) {
-      ;(this as IRpcServer).emit('verifyClient', { server: this, info })
+      this.emit('verifyClient', { server: this, info })
     }
     return true
   }

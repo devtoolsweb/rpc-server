@@ -1,6 +1,7 @@
 {
   "author": "<aperos.dev@gmail.com>",
   "dependencies": {
+    "@aperos/event-emitter": "*",
     "@aperos/rpc-common": "*",
     "@types/node": "latest",
     "@types/ws": "latest",
