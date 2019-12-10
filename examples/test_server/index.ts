@@ -14,4 +14,4 @@ rpcServer.on('result', event =>
   )
 )
 
-rpcServer.addMiddleware('TestDomain', new TestMiddleware()).start()
+rpcServer.addMiddleware(new TestMiddleware(), { name: 'TestDomain' }).start()

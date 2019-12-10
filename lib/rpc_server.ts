@@ -3,9 +3,11 @@ import { IncomingMessage } from 'http'
 import {
   EventEmitterMixin,
   IBaseEvents,
-  ITypedEventEmitter
+  ITypedEventEmitter,
+  EventEmitterConstructor
 } from '@aperos/event-emitter'
 import { IRpcMessage, RpcResult, IRpcResult } from '@aperos/rpc-common'
+import { BaseRpcServer, IBaseRpcServer } from './rpc_base'
 import { IRpcMiddleware } from './rpc_middleware'
 import { IRpcSession, RpcSession } from './rpc_session'
 
@@ -32,8 +34,14 @@ export interface IRpcServerEvents extends IBaseEvents {
   readonly result: (event: IRpcServerResultEvent) => void
 }
 
-export interface IRpcServer extends ITypedEventEmitter<IRpcServerEvents> {
-  addMiddleware(name: string, m: IRpcMiddleware): this
+export interface IRpcMiddlewareOptions {
+  name?: string
+}
+
+export interface IRpcServer
+  extends IBaseRpcServer,
+    ITypedEventEmitter<IRpcServerEvents> {
+  addMiddleware(m: IRpcMiddleware, options?: IRpcMiddlewareOptions): this
   start(): void
   stop(): void
 }
@@ -45,32 +53,23 @@ export interface IRpcServerParams {
   port?: number
 }
 
-export class BaseRpcServer {}
-
 export class RpcServer
-  extends EventEmitterMixin<IRpcServerEvents>(BaseRpcServer)
+  extends EventEmitterMixin<
+    IRpcServerEvents,
+    EventEmitterConstructor<BaseRpcServer>
+  >(BaseRpcServer)
   implements IRpcServer {
-  static standardHost = 'localhost'
-  static standardPort = 8301
   static standardHeartbeatTimeout = 30000
 
   readonly heartbeatTimeout: number
-  readonly host: string
-  readonly port: number
-
-  protected middlewares = new Map<string, IRpcMiddleware>()
 
   private sessions = new Map<WebSocket, IRpcSession>()
-  private env: Record<string, any>
   private heartbeatTimer?: NodeJS.Timeout
   private isInitialized = false
   private wss: WebSocket.Server
 
   constructor (p: IRpcServerParams) {
-    super()
-    this.env = p.env || {}
-    this.host = p.host || RpcServer.standardHost
-    this.port = p.port || RpcServer.standardPort
+    super(p)
     this.wss = new WebSocket.Server({
       host: this.host,
       port: this.port
@@ -81,15 +80,19 @@ export class RpcServer
     )
   }
 
-  addMiddleware (name: string, m: IRpcMiddleware): this {
-    this.middlewares.set(name, m)
-    return this
+  addMiddleware (m: IRpcMiddleware, options?: IRpcMiddlewareOptions): this {
+    const name = m.name || (options ? options.name : '')
+    if (name) {
+      this.middlewares.set(name, m)
+      return this
+    }
+    throw new Error(`Middleware name must be specified`)
   }
 
   async dispatchMessage (ws: WebSocket, message: IRpcMessage) {
     const m = this.middlewares.get(message.domain)
     const result = m
-      ? await m.handleMessage(message)
+      ? await (m as IRpcMiddleware).handleMessage(message)
       : new RpcResult({
           comment: `Unknown RPC message domain: '${message.domain}'`,
           id: message.id,
@@ -183,7 +186,7 @@ export class RpcServer
   private async ensureInitialized () {
     if (!this.isInitialized) {
       for (const m of this.middlewares.values()) {
-        await m.setup({ allMiddlewares: this.middlewares, env: this.env })
+        await (m as IRpcMiddleware).setup({ server: this })
       }
       this.isInitialized = true
     }
