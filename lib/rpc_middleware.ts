@@ -1,7 +1,13 @@
-import { IRpcMessage, IRpcResult, RpcResult } from '@aperos/rpc-common'
+import {
+  IRpcRequest,
+  IRpcResponse,
+  RpcErrorCodeEnum,
+  RpcResponse,
+  RpcError
+} from '@aperos/rpc-common'
 import { IBaseRpcServer, IBaseRpcMiddleware } from './rpc_base'
 
-export type RpcMessageHandler = (m: IRpcMessage) => Promise<IRpcResult | null>
+export type RpcRequestHandler = (m: IRpcRequest) => Promise<IRpcResponse | null>
 
 export interface IRpcMiddlewareParams {
   server: IBaseRpcServer
@@ -9,7 +15,7 @@ export interface IRpcMiddlewareParams {
 
 export interface IRpcMiddleware extends IBaseRpcMiddleware {
   readonly name?: string
-  handleMessage(message: IRpcMessage): Promise<IRpcResult | null>
+  handleRequest(request: IRpcRequest): Promise<IRpcResponse | null>
   getPropertyValue(name: string): Promise<any>
   setup(p: IRpcMiddlewareParams): Promise<void>
 }
@@ -19,14 +25,16 @@ export class RpcMiddleware implements IRpcMiddleware {
 
   async applyHooks (): Promise<void> {}
 
-  async handleMessage (msg: IRpcMessage): Promise<IRpcResult | null> {
-    const method = (this as any)[msg.verb]
+  async handleRequest (req: IRpcRequest): Promise<IRpcResponse | null> {
+    const method = (this as any)[req.verb]
     return method instanceof Function
-      ? (method as RpcMessageHandler).call(this, msg)
-      : new RpcResult({
-          comment: `Unknown verb '${msg.verb}' in domain '${msg.domain}'`,
-          id: msg.id,
-          status: 'failed'
+      ? (method as RpcRequestHandler).call(this, req)
+      : new RpcResponse({
+          error: new RpcError({
+            code: RpcErrorCodeEnum.MethodNotFound,
+            message: `Unknown verb '${req.verb}' in domain '${req.domain}'`
+          }),
+          id: req.id!
         })
   }
 
