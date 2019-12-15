@@ -7,10 +7,10 @@ const port = 3000
 console.log(`Running RPC server at http://${host}:${port}`)
 const rpcServer: IRpcServer = new RpcServer({ host, port })
 
-rpcServer.on('result', event =>
+rpcServer.on('response', event =>
   console.log(
-    `Server result message at ${new Date()} :`,
-    JSON.stringify(event.result, null, '  ')
+    `Server sent a response at ${new Date()} :`,
+    JSON.stringify(event.response, null, '  ')
   )
 )
 

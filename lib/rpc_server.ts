@@ -1,12 +1,20 @@
 import * as WebSocket from 'ws'
 import { IncomingMessage } from 'http'
 import {
+  EventEmitterConstructor,
   EventEmitterMixin,
   IBaseEvents,
-  ITypedEventEmitter,
-  EventEmitterConstructor
+  ITypedEventEmitter
 } from '@aperos/event-emitter'
-import { IRpcMessage, RpcResult, IRpcResult } from '@aperos/rpc-common'
+import {
+  IRpcRequest,
+  IRpcResponse,
+  RpcError,
+  RpcErrorCodeEnum,
+  RpcRequest,
+  RpcResponse,
+  IRpcResponseProps
+} from '@aperos/rpc-common'
 import { BaseRpcServer, IBaseRpcServer } from './rpc_base'
 import { IRpcMiddleware } from './rpc_middleware'
 import { IRpcSession, RpcSession } from './rpc_session'
@@ -16,7 +24,7 @@ export interface IBaseRpcServerEvent {
 }
 
 export interface IRpcServerEvent extends IBaseRpcServerEvent {
-  readonly rpcMessage?: IRpcMessage
+  readonly request?: IRpcRequest
   readonly ws?: WebSocket
 }
 
@@ -24,14 +32,14 @@ export interface IRpcServerErrorEvent extends IRpcServerEvent {
   readonly errorDescription: string
 }
 
-export interface IRpcServerResultEvent extends IRpcServerEvent {
-  readonly result: IRpcResult
+export interface IRpcServerResponseEvent extends IRpcServerEvent {
+  readonly response: IRpcResponse
 }
 
 export interface IRpcServerEvents extends IBaseEvents {
   readonly connect: (event: IBaseRpcServerEvent) => void
   readonly error: (event: IRpcServerErrorEvent) => void
-  readonly result: (event: IRpcServerResultEvent) => void
+  readonly response: (event: IRpcServerResponseEvent) => void
 }
 
 export interface IRpcMiddlewareOptions {
@@ -46,7 +54,7 @@ export interface IRpcServer
   stop(): void
 }
 
-export interface IRpcServerParams {
+export interface IRpcServerProps {
   env?: Record<string, any>
   heartbeatTimeout?: number
   host?: string
@@ -68,7 +76,7 @@ export class RpcServer
   private isInitialized = false
   private wss: WebSocket.Server
 
-  constructor (p: IRpcServerParams) {
+  constructor (p: IRpcServerProps) {
     super(p)
     this.wss = new WebSocket.Server({
       host: this.host,
@@ -89,19 +97,22 @@ export class RpcServer
     throw new Error(`Middleware name must be specified`)
   }
 
-  async dispatchMessage (ws: WebSocket, message: IRpcMessage) {
-    const m = this.middlewares.get(message.domain)
-    const result = m
-      ? await (m as IRpcMiddleware).handleMessage(message)
-      : new RpcResult({
-          comment: `Unknown RPC message domain: '${message.domain}'`,
-          id: message.id,
-          status: 'failed'
-        })
+  async dispatchRequest (ws: WebSocket, request: IRpcRequest) {
+    const m = this.middlewares.get(request.domain)
+    const props: IRpcResponseProps = { id: request.id! }
+    if (m) {
+      props.result = await (m as IRpcMiddleware).handleRequest(request)
+    } else {
+      props.error = new RpcError({
+        code: RpcErrorCodeEnum.InvalidRequest,
+        message: `Unknown RPC message domain: '${request.domain}'`
+      })
+    }
     try {
-      ws.send(JSON.stringify(result))
-      this.emit('result', {
-        result: result!,
+      const response = new RpcResponse(props)
+      ws.send(JSON.stringify(response))
+      this.emit('response', {
+        response: response!,
         server: this
       })
     } catch (e) {
@@ -109,7 +120,7 @@ export class RpcServer
       this.emit('error', {
         server: this,
         errorDescription: `Error sending message to client -- ${e.message}`,
-        rpcMessage: message
+        request
       })
     }
   }
@@ -124,16 +135,20 @@ export class RpcServer
         if (!session.isAuthentic) {
           await this.authenticateSession(session)
         }
-        const rpcMessage: IRpcMessage = JSON.parse(m)
+        const rpcRequest = new RpcRequest(
+          RpcRequest.makePropsFromJson(JSON.parse(m))
+        )
         if (session.isAuthentic) {
-          await this.dispatchMessage(ws, rpcMessage)
+          await this.dispatchRequest(ws, rpcRequest)
         } else {
           ws.send(
             JSON.stringify(
-              new RpcResult({
-                comment: 'Session not authenticated',
-                id: rpcMessage.id,
-                status: 'failed'
+              new RpcResponse({
+                error: new RpcError({
+                  code: RpcErrorCodeEnum.AuthenticationRequired,
+                  message: 'Session not authenticated'
+                }),
+                id: rpcRequest.id!
               })
             )
           )
