@@ -32,6 +32,10 @@ export interface IRpcServerErrorEvent extends IRpcServerEvent {
   readonly errorDescription: string
 }
 
+export interface IRpcServerRequestEvent extends IRpcServerEvent {
+  readonly request: IRpcRequest
+}
+
 export interface IRpcServerResponseEvent extends IRpcServerEvent {
   readonly response: IRpcResponse
 }
@@ -39,6 +43,7 @@ export interface IRpcServerResponseEvent extends IRpcServerEvent {
 export interface IRpcServerEvents extends IBaseEvents {
   readonly connect: (event: IBaseRpcServerEvent) => void
   readonly error: (event: IRpcServerErrorEvent) => void
+  readonly request: (event: IRpcServerRequestEvent) => void
   readonly response: (event: IRpcServerResponseEvent) => void
 }
 
@@ -123,6 +128,7 @@ export class RpcServer
         request
       })
     }
+    this.emit('request', { request, server: this })
   }
 
   async start () {
