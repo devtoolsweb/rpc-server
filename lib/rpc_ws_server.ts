@@ -38,35 +38,6 @@ export class RpcWsServer extends RpcServer {
     )
   }
 
-  async dispatchRequest (ws: WebSocket, request: IRpcRequest) {
-    const m = this.middlewares.get(request.domain)
-    const props: IRpcResponseOpts = { id: request.id! }
-    if (m) {
-      props.result = await (m as IRpcMiddleware).handleRequest(request)
-    } else {
-      props.error = new RpcError({
-        code: RpcErrorCodeEnum.InvalidRequest,
-        message: `Unknown RPC message domain: '${request.domain}'`
-      })
-    }
-    try {
-      const response = new RpcResponse(props)
-      ws.send(JSON.stringify(response))
-      this.emit('response', {
-        response: response!,
-        server: this
-      })
-    } catch (e) {
-      this.deleteBrokenSessions()
-      this.emit('error', {
-        server: this,
-        errorDescription: `Error sending message to client -- ${e.message}`,
-        request
-      })
-    }
-    this.emit('request', { request, server: this })
-  }
-
   async start () {
     await this.ensureInitialized()
     this.wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
@@ -138,6 +109,35 @@ export class RpcWsServer extends RpcServer {
         this.sessions.delete(x.ws)
       }
     })
+  }
+
+  private async dispatchRequest (ws: WebSocket, request: IRpcRequest) {
+    const m = this.middlewares.get(request.domain)
+    const props: IRpcResponseOpts = { id: request.id! }
+    if (m) {
+      props.result = await (m as IRpcMiddleware).handleRequest(request)
+    } else {
+      props.error = new RpcError({
+        code: RpcErrorCodeEnum.InvalidRequest,
+        message: `Unknown RPC message domain: '${request.domain}'`
+      })
+    }
+    try {
+      const response = new RpcResponse(props)
+      ws.send(JSON.stringify(response))
+      this.emit('response', {
+        response: response!,
+        server: this
+      })
+    } catch (e) {
+      this.deleteBrokenSessions()
+      this.emit('error', {
+        server: this,
+        errorDescription: `Error sending message to client -- ${e.message}`,
+        request
+      })
+    }
+    this.emit('request', { request, server: this })
   }
 
   private async ensureInitialized () {

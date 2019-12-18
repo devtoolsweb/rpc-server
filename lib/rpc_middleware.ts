@@ -5,7 +5,11 @@ import {
   RpcErrorCodeEnum,
   RpcResponse
 } from '@aperos/rpc-common'
-import { IBaseRpcServer, IBaseRpcMiddleware } from './rpc_base'
+import {
+  IBaseRpcServer,
+  IBaseRpcMiddleware,
+  BaseRpcMiddleware
+} from './rpc_base'
 
 export type RpcRequestHandler = (m: IRpcRequest) => Promise<IRpcResponse | null>
 
@@ -19,7 +23,7 @@ export interface IRpcMiddleware extends IBaseRpcMiddleware {
   setup(p: IRpcMiddlewareOpts): Promise<void>
 }
 
-export class RpcMiddleware implements IRpcMiddleware {
+export class RpcMiddleware extends BaseRpcMiddleware implements IRpcMiddleware {
   protected server!: IBaseRpcServer
 
   async applyHooks (): Promise<void> {}

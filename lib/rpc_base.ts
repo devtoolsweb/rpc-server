@@ -10,3 +10,9 @@ export interface IBaseRpcServer {
 }
 
 export class BaseRpcServer {}
+
+export class BaseRpcMiddleware {
+  get name() {
+    return ''
+  }
+}
