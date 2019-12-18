@@ -19,59 +19,55 @@ import { BaseRpcServer, IBaseRpcServer } from './rpc_base'
 import { IRpcMiddleware } from './rpc_middleware'
 import { IRpcSession, RpcSession } from './rpc_session'
 
-export interface IBaseRpcServerEvent {
-  readonly server: IRpcServer
+export interface IBaseRpcWsServerEvent {
+  readonly server: IRpcWsServer
 }
 
-export interface IRpcServerEvent extends IBaseRpcServerEvent {
+export interface IRpcWsServerEvent extends IBaseRpcWsServerEvent {
   readonly request?: IRpcRequest
   readonly ws?: WebSocket
 }
 
-export interface IRpcServerErrorEvent extends IRpcServerEvent {
+export interface IRpcWsServerErrorEvent extends IRpcWsServerEvent {
   readonly errorDescription: string
 }
 
-export interface IRpcServerRequestEvent extends IRpcServerEvent {
+export interface IRpcWsServerRequestEvent extends IRpcWsServerEvent {
   readonly request: IRpcRequest
 }
 
-export interface IRpcServerResponseEvent extends IRpcServerEvent {
+export interface IRpcWsServerResponseEvent extends IRpcWsServerEvent {
   readonly response: IRpcResponse
 }
 
-export interface IRpcServerEvents extends IBaseEvents {
-  readonly connect: (event: IBaseRpcServerEvent) => void
-  readonly error: (event: IRpcServerErrorEvent) => void
-  readonly request: (event: IRpcServerRequestEvent) => void
-  readonly response: (event: IRpcServerResponseEvent) => void
+export interface IRpcWsServerEvents extends IBaseEvents {
+  readonly connect: (event: IBaseRpcWsServerEvent) => void
+  readonly error: (event: IRpcWsServerErrorEvent) => void
+  readonly request: (event: IRpcWsServerRequestEvent) => void
+  readonly response: (event: IRpcWsServerResponseEvent) => void
 }
 
-export interface IRpcMiddlewareOptions {
-  name?: string
-}
-
-export interface IRpcServer
+export interface IRpcWsServer
   extends IBaseRpcServer,
-    ITypedEventEmitter<IRpcServerEvents> {
-  addMiddleware(m: IRpcMiddleware, options?: IRpcMiddlewareOptions): this
+    ITypedEventEmitter<IRpcWsServerEvents> {
+  addMiddleware(m: IRpcMiddleware, alias?: string): this
   start(): void
   stop(): void
 }
 
-export interface IRpcServerOpts {
+export interface IRpcWsServerOpts {
   env?: Record<string, any>
   heartbeatTimeout?: number
   host?: string
   port?: number
 }
 
-export class RpcServer
+export class RpcWsServer
   extends EventEmitterMixin<
-    IRpcServerEvents,
+    IRpcWsServerEvents,
     EventEmitterConstructor<BaseRpcServer>
   >(BaseRpcServer)
-  implements IRpcServer {
+  implements IRpcWsServer {
   static standardHeartbeatTimeout = 30000
 
   readonly heartbeatTimeout: number
@@ -81,25 +77,16 @@ export class RpcServer
   private isInitialized = false
   private wss: WebSocket.Server
 
-  constructor (p: IRpcServerOpts) {
+  constructor (p: IRpcWsServerOpts) {
     super(p)
     this.wss = new WebSocket.Server({
       host: this.host,
       port: this.port
     })
     this.heartbeatTimeout = Math.min(
-      p.heartbeatTimeout || RpcServer.standardHeartbeatTimeout,
+      p.heartbeatTimeout || RpcWsServer.standardHeartbeatTimeout,
       1000
     )
-  }
-
-  addMiddleware (m: IRpcMiddleware, options?: IRpcMiddlewareOptions): this {
-    const name = m.name || (options ? options.name : '')
-    if (name) {
-      this.middlewares.set(name, m)
-      return this
-    }
-    throw new Error(`Middleware name must be specified`)
   }
 
   async dispatchRequest (ws: WebSocket, request: IRpcRequest) {
