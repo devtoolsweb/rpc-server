@@ -8,11 +8,11 @@ import {
   RpcRequest,
   RpcResponse
 } from '@aperos/rpc-common'
-import { RpcServer, IBaseRpcServerOpts } from './rpc_base'
 import { IRpcMiddleware } from './rpc_middleware'
 import { IRpcSession, RpcSession } from './rpc_session'
+import { IRpcServerOpts, RpcServer } from './rpc_server'
 
-export interface IRpcWsServerOpts extends IBaseRpcServerOpts {
+export interface IRpcWsServerOpts extends IRpcServerOpts {
   heartbeatTimeout?: number
 }
 
