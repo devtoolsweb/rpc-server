@@ -9,11 +9,11 @@ import {
 import {
   IRpcRequest,
   IRpcResponse,
+  IRpcResponseOpts,
   RpcError,
   RpcErrorCodeEnum,
   RpcRequest,
-  RpcResponse,
-  IRpcResponseProps
+  RpcResponse
 } from '@aperos/rpc-common'
 import { BaseRpcServer, IBaseRpcServer } from './rpc_base'
 import { IRpcMiddleware } from './rpc_middleware'
@@ -59,7 +59,7 @@ export interface IRpcServer
   stop(): void
 }
 
-export interface IRpcServerProps {
+export interface IRpcServerOpts {
   env?: Record<string, any>
   heartbeatTimeout?: number
   host?: string
@@ -81,7 +81,7 @@ export class RpcServer
   private isInitialized = false
   private wss: WebSocket.Server
 
-  constructor (p: IRpcServerProps) {
+  constructor (p: IRpcServerOpts) {
     super(p)
     this.wss = new WebSocket.Server({
       host: this.host,
@@ -104,7 +104,7 @@ export class RpcServer
 
   async dispatchRequest (ws: WebSocket, request: IRpcRequest) {
     const m = this.middlewares.get(request.domain)
-    const props: IRpcResponseProps = { id: request.id! }
+    const props: IRpcResponseOpts = { id: request.id! }
     if (m) {
       props.result = await (m as IRpcMiddleware).handleRequest(request)
     } else {
