@@ -1,73 +1,22 @@
 import * as WebSocket from 'ws'
 import { IncomingMessage } from 'http'
 import {
-  EventEmitterConstructor,
-  EventEmitterMixin,
-  IBaseEvents,
-  ITypedEventEmitter
-} from '@aperos/event-emitter'
-import {
   IRpcRequest,
-  IRpcResponse,
   IRpcResponseOpts,
   RpcError,
   RpcErrorCodeEnum,
   RpcRequest,
   RpcResponse
 } from '@aperos/rpc-common'
-import { BaseRpcServer, IBaseRpcServer } from './rpc_base'
+import { RpcServer, IBaseRpcServerOpts } from './rpc_base'
 import { IRpcMiddleware } from './rpc_middleware'
 import { IRpcSession, RpcSession } from './rpc_session'
 
-export interface IBaseRpcWsServerEvent {
-  readonly server: IRpcWsServer
-}
-
-export interface IRpcWsServerEvent extends IBaseRpcWsServerEvent {
-  readonly request?: IRpcRequest
-  readonly ws?: WebSocket
-}
-
-export interface IRpcWsServerErrorEvent extends IRpcWsServerEvent {
-  readonly errorDescription: string
-}
-
-export interface IRpcWsServerRequestEvent extends IRpcWsServerEvent {
-  readonly request: IRpcRequest
-}
-
-export interface IRpcWsServerResponseEvent extends IRpcWsServerEvent {
-  readonly response: IRpcResponse
-}
-
-export interface IRpcWsServerEvents extends IBaseEvents {
-  readonly connect: (event: IBaseRpcWsServerEvent) => void
-  readonly error: (event: IRpcWsServerErrorEvent) => void
-  readonly request: (event: IRpcWsServerRequestEvent) => void
-  readonly response: (event: IRpcWsServerResponseEvent) => void
-}
-
-export interface IRpcWsServer
-  extends IBaseRpcServer,
-    ITypedEventEmitter<IRpcWsServerEvents> {
-  addMiddleware(m: IRpcMiddleware, alias?: string): this
-  start(): void
-  stop(): void
-}
-
-export interface IRpcWsServerOpts {
-  env?: Record<string, any>
+export interface IRpcWsServerOpts extends IBaseRpcServerOpts {
   heartbeatTimeout?: number
-  host?: string
-  port?: number
 }
 
-export class RpcWsServer
-  extends EventEmitterMixin<
-    IRpcWsServerEvents,
-    EventEmitterConstructor<BaseRpcServer>
-  >(BaseRpcServer)
-  implements IRpcWsServer {
+export class RpcWsServer extends RpcServer {
   static standardHeartbeatTimeout = 30000
 
   readonly heartbeatTimeout: number
