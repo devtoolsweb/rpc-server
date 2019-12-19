@@ -35,8 +35,7 @@ export class RpcWsServer extends RpcServer {
     )
   }
 
-  async start () {
-    await this.ensureInitialized()
+  protected async performStart () {
     this.wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
       this.emit('connect', { server: this })
       const session = this.getSession(ws, req)
@@ -57,7 +56,7 @@ export class RpcWsServer extends RpcServer {
     hb()
   }
 
-  async stop () {
+  protected async performStop () {
     if (this.heartbeatTimer) {
       clearTimeout(this.heartbeatTimer)
       delete this.heartbeatTimer

@@ -87,9 +87,14 @@ export class RpcServer
     throw new Error(`Middleware name must be specified`)
   }
 
-  start () {}
+  async start () {
+    await this.ensureInitialized()
+    await this.performStart()
+  }
 
-  stop () {}
+  async stop () {
+    await this.performStop()
+  }
 
   protected async authenticateRequest (r: IRpcRequest) {
     return !this.apiKeys || (r.apiKey && this.apiKeys.has(r.apiKey))
@@ -117,4 +122,8 @@ export class RpcServer
       this.isInitialized = true
     }
   }
+
+  protected async performStart () {}
+
+  protected async performStop () {}
 }

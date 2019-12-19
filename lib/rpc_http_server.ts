@@ -41,12 +41,11 @@ export class RpcHttpServer extends RpcServer {
     })
   }
 
-  async start () {
-    await this.ensureInitialized()
+  protected async performStart () {
     this.server.listen(this.port, this.host)
   }
 
-  async stop () {
+  protected async performStop () {
     if (this.server.listening) {
       this.server.close()
     }
