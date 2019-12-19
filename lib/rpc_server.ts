@@ -1,35 +1,28 @@
-import * as WebSocket from 'ws'
-import { IncomingMessage } from 'http'
-import {
-  EventEmitterConstructor,
-  EventEmitterMixin,
-  IBaseEvents,
-  ITypedEventEmitter
-} from '@aperos/event-emitter'
 import {
   IRpcRequest,
   IRpcResponse,
   IRpcResponseOpts,
   RpcError,
   RpcErrorCodeEnum,
-  RpcRequest,
-  RpcResponse
+  RpcResponse,
+  RpcRequest
 } from '@aperos/rpc-common'
-import { BaseRpcServer, IBaseRpcServer } from './rpc_base'
+import {
+  IBaseEvents,
+  ITypedEventEmitter,
+  EventEmitterMixin,
+  EventEmitterConstructor
+} from '@aperos/event-emitter'
+import { BaseRpcServer, IBaseRpcMiddleware, IBaseRpcServer } from './rpc_base'
 import { IRpcMiddleware } from './rpc_middleware'
-import { IRpcSession, RpcSession } from './rpc_session'
 
-export interface IBaseRpcServerEvent {
+export interface IRpcServerEvent {
   readonly server: IRpcServer
-}
-
-export interface IRpcServerEvent extends IBaseRpcServerEvent {
-  readonly request?: IRpcRequest
-  readonly ws?: WebSocket
 }
 
 export interface IRpcServerErrorEvent extends IRpcServerEvent {
   readonly errorDescription: string
+  readonly requestData?: string
 }
 
 export interface IRpcServerRequestEvent extends IRpcServerEvent {
@@ -41,29 +34,25 @@ export interface IRpcServerResponseEvent extends IRpcServerEvent {
 }
 
 export interface IRpcServerEvents extends IBaseEvents {
-  readonly connect: (event: IBaseRpcServerEvent) => void
+  readonly connect: (event: IRpcServerEvent) => void
   readonly error: (event: IRpcServerErrorEvent) => void
   readonly request: (event: IRpcServerRequestEvent) => void
   readonly response: (event: IRpcServerResponseEvent) => void
 }
 
-export interface IRpcMiddlewareOptions {
-  name?: string
+export interface IRpcServerOpts {
+  apiKeys?: string[]
+  env?: Record<string, any>
+  host?: string
+  port: number
 }
 
 export interface IRpcServer
   extends IBaseRpcServer,
     ITypedEventEmitter<IRpcServerEvents> {
-  addMiddleware(m: IRpcMiddleware, options?: IRpcMiddlewareOptions): this
+  addMiddleware(m: IBaseRpcMiddleware, alias?: string): this
   start(): void
   stop(): void
-}
-
-export interface IRpcServerOpts {
-  env?: Record<string, any>
-  heartbeatTimeout?: number
-  host?: string
-  port?: number
 }
 
 export class RpcServer
@@ -72,29 +61,26 @@ export class RpcServer
     EventEmitterConstructor<BaseRpcServer>
   >(BaseRpcServer)
   implements IRpcServer {
-  static standardHeartbeatTimeout = 30000
+  readonly apiKeys?: Set<string>
+  readonly env: Record<string, any>
+  readonly host: string
+  readonly middlewares = new Map<string, IBaseRpcMiddleware>()
+  readonly port: number
 
-  readonly heartbeatTimeout: number
-
-  private sessions = new Map<WebSocket, IRpcSession>()
-  private heartbeatTimer?: NodeJS.Timeout
   private isInitialized = false
-  private wss: WebSocket.Server
 
   constructor (p: IRpcServerOpts) {
-    super(p)
-    this.wss = new WebSocket.Server({
-      host: this.host,
-      port: this.port
-    })
-    this.heartbeatTimeout = Math.min(
-      p.heartbeatTimeout || RpcServer.standardHeartbeatTimeout,
-      1000
-    )
+    super()
+    this.env = p.env || {}
+    this.host = p.host || 'localhost'
+    this.port = p.port
+    if (p.apiKeys) {
+      this.apiKeys = new Set<string>(p.apiKeys)
+    }
   }
 
-  addMiddleware (m: IRpcMiddleware, options?: IRpcMiddlewareOptions): this {
-    const name = m.name || (options ? options.name : '')
+  addMiddleware (m: IBaseRpcMiddleware, alias?: string): this {
+    const name = m.name || alias
     if (name) {
       this.middlewares.set(name, m)
       return this
@@ -102,109 +88,65 @@ export class RpcServer
     throw new Error(`Middleware name must be specified`)
   }
 
-  async dispatchRequest (ws: WebSocket, request: IRpcRequest) {
+  async start () {
+    await this.ensureInitialized()
+    await this.performStart()
+  }
+
+  async stop () {
+    await this.performStop()
+  }
+
+  protected async authenticateRequest (r: IRpcRequest) {
+    return !this.apiKeys || (r.apiKey && this.apiKeys.has(r.apiKey))
+  }
+
+  protected async dispatchRequest (request: IRpcRequest) {
     const m = this.middlewares.get(request.domain)
-    const props: IRpcResponseOpts = { id: request.id! }
+    const opts: IRpcResponseOpts = { id: request.id! }
     if (m) {
-      props.result = await (m as IRpcMiddleware).handleRequest(request)
+      opts.result = await (m as IRpcMiddleware).handleRequest(request)
     } else {
-      props.error = new RpcError({
+      opts.error = new RpcError({
         code: RpcErrorCodeEnum.InvalidRequest,
         message: `Unknown RPC message domain: '${request.domain}'`
       })
     }
+    return new RpcResponse(opts)
+  }
+
+  protected async handleRequestData (requestData: string) {
     try {
-      const response = new RpcResponse(props)
-      ws.send(JSON.stringify(response))
-      this.emit('response', {
-        response: response!,
+      const request = new RpcRequest(
+        RpcRequest.makePropsFromJson(JSON.parse(requestData))
+      )
+      this.emit('request', { request, server: this })
+      return this.authenticateRequest(request)
+        ? await this.dispatchRequest(request)
+        : new RpcResponse({
+            error: new RpcError({
+              code: RpcErrorCodeEnum.AuthenticationRequired,
+              message: 'Session not authenticated'
+            }),
+            id: request.id!
+          })
+    } catch (e) {
+      this.emit('error', {
+        errorDescription: e.message,
+        requestData,
         server: this
       })
-    } catch (e) {
-      this.deleteBrokenSessions()
-      this.emit('error', {
-        server: this,
-        errorDescription: `Error sending message to client -- ${e.message}`,
-        request
+      return new RpcResponse({
+        error: new RpcError({
+          code: RpcErrorCodeEnum.AuthenticationRequired,
+          message: e.message
+        }),
+        id: 0
       })
     }
-    this.emit('request', { request, server: this })
   }
 
-  async start () {
-    await this.ensureInitialized()
-    this.wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
-      this.emit('connect', { server: this })
-      const session = this.getSession(ws, req)
-      session.isAlive = true
-      ws.on('message', async (m: string) => {
-        if (!session.isAuthentic) {
-          await this.authenticateSession(session)
-        }
-        const rpcRequest = new RpcRequest(
-          RpcRequest.makePropsFromJson(JSON.parse(m))
-        )
-        if (session.isAuthentic) {
-          await this.dispatchRequest(ws, rpcRequest)
-        } else {
-          ws.send(
-            JSON.stringify(
-              new RpcResponse({
-                error: new RpcError({
-                  code: RpcErrorCodeEnum.AuthenticationRequired,
-                  message: 'Session not authenticated'
-                }),
-                id: rpcRequest.id!
-              })
-            )
-          )
-        }
-      }).on('pong', () => {
-        session.isAlive = true
-      })
-    })
-    const hb = () => {
-      this.deleteBrokenSessions()
-      this.heartbeatTimer = global.setTimeout(hb, this.heartbeatTimeout)
-    }
-    hb()
-  }
-
-  async stop () {
-    if (this.heartbeatTimer) {
-      clearTimeout(this.heartbeatTimer)
-      delete this.heartbeatTimer
-    }
-    // TODO: Notify clients
-    this.wss.close()
-  }
-
-  protected async authenticateSession (s: IRpcSession) {
-    s.isAuthentic = true
-  }
-
-  private deleteBrokenSessions (): void {
-    const xs = new Set<IRpcSession>()
-    this.wss.clients.forEach(ws => {
-      const x = this.sessions.get(ws)!
-      if (x) {
-        if (x.isAlive) {
-          xs.add(x)
-          x.isAlive = false
-          ws.ping(() => {})
-        } else {
-          x.finalize()
-        }
-      }
-    })
-    this.sessions.forEach(x => {
-      if (!xs.has(x)) {
-        this.sessions.delete(x.ws)
-      }
-    })
-  }
-
-  private async ensureInitialized () {
+  protected async ensureInitialized () {
     if (!this.isInitialized) {
       for (const m of this.middlewares.values()) {
         await (m as IRpcMiddleware).setup({ server: this })
@@ -213,12 +155,7 @@ export class RpcServer
     }
   }
 
-  private getSession (ws: WebSocket, req: IncomingMessage): IRpcSession {
-    let s = this.sessions.get(ws)
-    if (!s) {
-      s = new RpcSession({ req, ws })
-      this.sessions.set(ws, s)
-    }
-    return s
-  }
+  protected async performStart () {}
+
+  protected async performStop () {}
 }

@@ -9,12 +9,10 @@ export interface IRpcSessionParams {
 export interface IRpcSession extends IRpcSessionParams {
   finalize(): void
   isAlive: boolean
-  isAuthentic: boolean
 }
 
 export class RpcSession implements IRpcSession {
   isAlive: boolean = true
-  isAuthentic: boolean = false
   readonly req: IncomingMessage
   readonly ws: WebSocket
 

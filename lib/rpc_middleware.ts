@@ -1,26 +1,29 @@
 import {
   IRpcRequest,
   IRpcResponse,
+  RpcError,
   RpcErrorCodeEnum,
-  RpcResponse,
-  RpcError
+  RpcResponse
 } from '@aperos/rpc-common'
-import { IBaseRpcServer, IBaseRpcMiddleware } from './rpc_base'
+import {
+  BaseRpcMiddleware,
+  IBaseRpcMiddleware,
+  IBaseRpcServer
+} from './rpc_base'
 
 export type RpcRequestHandler = (m: IRpcRequest) => Promise<IRpcResponse | null>
 
-export interface IRpcMiddlewareParams {
+export interface IRpcMiddlewareOpts {
   server: IBaseRpcServer
 }
 
 export interface IRpcMiddleware extends IBaseRpcMiddleware {
-  readonly name?: string
   handleRequest(request: IRpcRequest): Promise<IRpcResponse | null>
   getPropertyValue(name: string): Promise<any>
-  setup(p: IRpcMiddlewareParams): Promise<void>
+  setup(p: IRpcMiddlewareOpts): Promise<void>
 }
 
-export class RpcMiddleware implements IRpcMiddleware {
+export class RpcMiddleware extends BaseRpcMiddleware implements IRpcMiddleware {
   protected server!: IBaseRpcServer
 
   async applyHooks (): Promise<void> {}
@@ -45,7 +48,7 @@ export class RpcMiddleware implements IRpcMiddleware {
     return (this as any)[name]
   }
 
-  async setup (p: IRpcMiddlewareParams) {
+  async setup (p: IRpcMiddlewareOpts) {
     this.server = p.server
     await this.initialize()
   }
