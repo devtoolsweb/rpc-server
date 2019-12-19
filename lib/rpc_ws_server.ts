@@ -1,12 +1,5 @@
 import * as WebSocket from 'ws'
 import { IncomingMessage } from 'http'
-import {
-  IRpcRequest,
-  RpcError,
-  RpcErrorCodeEnum,
-  RpcRequest,
-  RpcResponse
-} from '@aperos/rpc-common'
 import { IRpcSession, RpcSession } from './rpc_session'
 import { IRpcServerOpts, RpcServer } from './rpc_server'
 
@@ -40,20 +33,32 @@ export class RpcWsServer extends RpcServer {
       this.emit('connect', { server: this })
       const session = this.getSession(ws, req)
       session.isAlive = true
-      ws.on('message', async (m: string) => {
-        const rpcRequest = new RpcRequest(
-          RpcRequest.makePropsFromJson(JSON.parse(m))
-        )
-        await this.handleRequest(ws, rpcRequest)
-      }).on('pong', () => {
-        session.isAlive = true
-      })
+      ws.on('message', async (m: string) => this.handleMessage(ws, m)).on(
+        'pong',
+        () => {
+          session.isAlive = true
+        }
+      )
+      const hb = () => {
+        this.deleteBrokenSessions()
+        this.heartbeatTimer = global.setTimeout(hb, this.heartbeatTimeout)
+      }
+      hb()
     })
-    const hb = () => {
+  }
+
+  protected async handleMessage (ws: WebSocket, m: string) {
+    const response = await this.handleRequestData(m)
+    try {
+      ws.send(JSON.stringify(response))
+      this.emit('response', { response, server: this })
+    } catch (e) {
       this.deleteBrokenSessions()
-      this.heartbeatTimer = global.setTimeout(hb, this.heartbeatTimeout)
+      this.emit('error', {
+        server: this,
+        errorDescription: `Error sending response to client -- ${e.message}`
+      })
     }
-    hb()
   }
 
   protected async performStop () {
@@ -84,33 +89,6 @@ export class RpcWsServer extends RpcServer {
         this.sessions.delete(x.ws)
       }
     })
-  }
-
-  private async handleRequest (ws: WebSocket, request: IRpcRequest) {
-    try {
-      const response = this.authenticateRequest(request)
-        ? await this.dispatchRequest(request)
-        : new RpcResponse({
-            error: new RpcError({
-              code: RpcErrorCodeEnum.AuthenticationRequired,
-              message: 'Session not authenticated'
-            }),
-            id: request.id!
-          })
-      ws.send(JSON.stringify(response))
-      this.emit('response', {
-        response: response!,
-        server: this
-      })
-    } catch (e) {
-      this.deleteBrokenSessions()
-      this.emit('error', {
-        server: this,
-        errorDescription: `Error sending message to client -- ${e.message}`,
-        request
-      })
-    }
-    this.emit('request', { request, server: this })
   }
 
   private getSession (ws: WebSocket, req: IncomingMessage): IRpcSession {

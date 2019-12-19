@@ -4,7 +4,8 @@ import {
   IRpcResponseOpts,
   RpcError,
   RpcErrorCodeEnum,
-  RpcResponse
+  RpcResponse,
+  RpcRequest
 } from '@aperos/rpc-common'
 import {
   IBaseEvents,
@@ -21,7 +22,7 @@ export interface IRpcServerEvent {
 
 export interface IRpcServerErrorEvent extends IRpcServerEvent {
   readonly errorDescription: string
-  readonly request: IRpcRequest
+  readonly requestData?: string
 }
 
 export interface IRpcServerRequestEvent extends IRpcServerEvent {
@@ -112,6 +113,37 @@ export class RpcServer
       })
     }
     return new RpcResponse(opts)
+  }
+
+  protected async handleRequestData (requestData: string) {
+    try {
+      const request = new RpcRequest(
+        RpcRequest.makePropsFromJson(JSON.parse(requestData))
+      )
+      this.emit('request', { request, server: this })
+      return this.authenticateRequest(request)
+        ? await this.dispatchRequest(request)
+        : new RpcResponse({
+            error: new RpcError({
+              code: RpcErrorCodeEnum.AuthenticationRequired,
+              message: 'Session not authenticated'
+            }),
+            id: request.id!
+          })
+    } catch (e) {
+      this.emit('error', {
+        errorDescription: e.message,
+        requestData,
+        server: this
+      })
+      return new RpcResponse({
+        error: new RpcError({
+          code: RpcErrorCodeEnum.AuthenticationRequired,
+          message: e.message
+        }),
+        id: 0
+      })
+    }
   }
 
   protected async ensureInitialized () {
