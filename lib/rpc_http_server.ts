@@ -11,6 +11,7 @@ export class RpcHttpServer extends RpcServer {
     this.server = createServer(async (request, response) => {
       const origin = (request.headers as any).origin
       if (request.method === 'OPTIONS') {
+        response.setHeader('Access-Control-Allow-Credentials', 'true')
         response.setHeader('Access-Control-Allow-Origin', origin)
         response.setHeader(
           'Access-Control-Allow-Headers',
@@ -45,6 +46,7 @@ export class RpcHttpServer extends RpcServer {
        * The standard HTTP error code for any RPC responses should be 200,
        * regardless of whether the RPC response contains an error or not.
        */
+      httpResponse.setHeader('Access-Control-Allow-Credentials', 'true')
       httpResponse.setHeader('Access-Control-Allow-Origin', origin)
       httpResponse.setHeader('Content-Type', 'application/json')
       const s = JSON.stringify(response)
