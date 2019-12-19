@@ -6,9 +6,9 @@ import {
   RpcResponse
 } from '@aperos/rpc-common'
 import {
-  IBaseRpcServer,
+  BaseRpcMiddleware,
   IBaseRpcMiddleware,
-  BaseRpcMiddleware
+  IBaseRpcServer
 } from './rpc_base'
 
 export type RpcRequestHandler = (m: IRpcRequest) => Promise<IRpcResponse | null>

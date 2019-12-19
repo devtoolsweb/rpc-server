@@ -2,13 +2,11 @@ import * as WebSocket from 'ws'
 import { IncomingMessage } from 'http'
 import {
   IRpcRequest,
-  IRpcResponseOpts,
   RpcError,
   RpcErrorCodeEnum,
   RpcRequest,
   RpcResponse
 } from '@aperos/rpc-common'
-import { IRpcMiddleware } from './rpc_middleware'
 import { IRpcSession, RpcSession } from './rpc_session'
 import { IRpcServerOpts, RpcServer } from './rpc_server'
 
@@ -23,7 +21,6 @@ export class RpcWsServer extends RpcServer {
 
   private sessions = new Map<WebSocket, IRpcSession>()
   private heartbeatTimer?: NodeJS.Timeout
-  private isInitialized = false
   private wss: WebSocket.Server
 
   constructor (p: IRpcWsServerOpts) {
@@ -45,27 +42,10 @@ export class RpcWsServer extends RpcServer {
       const session = this.getSession(ws, req)
       session.isAlive = true
       ws.on('message', async (m: string) => {
-        if (!session.isAuthentic) {
-          await this.authenticateSession(session)
-        }
         const rpcRequest = new RpcRequest(
           RpcRequest.makePropsFromJson(JSON.parse(m))
         )
-        if (session.isAuthentic) {
-          await this.dispatchRequest(ws, rpcRequest)
-        } else {
-          ws.send(
-            JSON.stringify(
-              new RpcResponse({
-                error: new RpcError({
-                  code: RpcErrorCodeEnum.AuthenticationRequired,
-                  message: 'Session not authenticated'
-                }),
-                id: rpcRequest.id!
-              })
-            )
-          )
-        }
+        await this.handleRequest(ws, rpcRequest)
       }).on('pong', () => {
         session.isAlive = true
       })
@@ -84,10 +64,6 @@ export class RpcWsServer extends RpcServer {
     }
     // TODO: Notify clients
     this.wss.close()
-  }
-
-  protected async authenticateSession (s: IRpcSession) {
-    s.isAuthentic = true
   }
 
   private deleteBrokenSessions (): void {
@@ -111,19 +87,17 @@ export class RpcWsServer extends RpcServer {
     })
   }
 
-  private async dispatchRequest (ws: WebSocket, request: IRpcRequest) {
-    const m = this.middlewares.get(request.domain)
-    const props: IRpcResponseOpts = { id: request.id! }
-    if (m) {
-      props.result = await (m as IRpcMiddleware).handleRequest(request)
-    } else {
-      props.error = new RpcError({
-        code: RpcErrorCodeEnum.InvalidRequest,
-        message: `Unknown RPC message domain: '${request.domain}'`
-      })
-    }
+  private async handleRequest (ws: WebSocket, request: IRpcRequest) {
     try {
-      const response = new RpcResponse(props)
+      const response = this.authenticateRequest(request)
+        ? await this.dispatchRequest(request)
+        : new RpcResponse({
+            error: new RpcError({
+              code: RpcErrorCodeEnum.AuthenticationRequired,
+              message: 'Session not authenticated'
+            }),
+            id: request.id!
+          })
       ws.send(JSON.stringify(response))
       this.emit('response', {
         response: response!,
@@ -138,15 +112,6 @@ export class RpcWsServer extends RpcServer {
       })
     }
     this.emit('request', { request, server: this })
-  }
-
-  private async ensureInitialized () {
-    if (!this.isInitialized) {
-      for (const m of this.middlewares.values()) {
-        await (m as IRpcMiddleware).setup({ server: this })
-      }
-      this.isInitialized = true
-    }
   }
 
   private getSession (ws: WebSocket, req: IncomingMessage): IRpcSession {

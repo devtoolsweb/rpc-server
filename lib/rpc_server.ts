@@ -1,4 +1,11 @@
-import { IRpcRequest, IRpcResponse } from '@aperos/rpc-common'
+import {
+  IRpcRequest,
+  IRpcResponse,
+  IRpcResponseOpts,
+  RpcError,
+  RpcErrorCodeEnum,
+  RpcResponse
+} from '@aperos/rpc-common'
 import {
   IBaseEvents,
   ITypedEventEmitter,
@@ -6,6 +13,7 @@ import {
   EventEmitterConstructor
 } from '@aperos/event-emitter'
 import { BaseRpcServer, IBaseRpcMiddleware, IBaseRpcServer } from './rpc_base'
+import { IRpcMiddleware } from './rpc_middleware'
 
 export interface IRpcServerEvent {
   readonly server: IRpcServer
@@ -32,6 +40,7 @@ export interface IRpcServerEvents extends IBaseEvents {
 }
 
 export interface IRpcServerOpts {
+  apiKeys?: string[]
   env?: Record<string, any>
   host?: string
   port: number
@@ -51,16 +60,22 @@ export class RpcServer
     EventEmitterConstructor<BaseRpcServer>
   >(BaseRpcServer)
   implements IRpcServer {
+  readonly apiKeys?: Set<string>
   readonly env: Record<string, any>
   readonly host: string
   readonly middlewares = new Map<string, IBaseRpcMiddleware>()
   readonly port: number
+
+  private isInitialized = false
 
   constructor (p: IRpcServerOpts) {
     super()
     this.env = p.env || {}
     this.host = p.host || 'localhost'
     this.port = p.port
+    if (p.apiKeys) {
+      this.apiKeys = new Set<string>(p.apiKeys)
+    }
   }
 
   addMiddleware (m: IBaseRpcMiddleware, alias?: string): this {
@@ -75,4 +90,31 @@ export class RpcServer
   start () {}
 
   stop () {}
+
+  protected async authenticateRequest (r: IRpcRequest) {
+    return !this.apiKeys || (r.apiKey && this.apiKeys.has(r.apiKey))
+  }
+
+  protected async dispatchRequest (request: IRpcRequest) {
+    const m = this.middlewares.get(request.domain)
+    const opts: IRpcResponseOpts = { id: request.id! }
+    if (m) {
+      opts.result = await (m as IRpcMiddleware).handleRequest(request)
+    } else {
+      opts.error = new RpcError({
+        code: RpcErrorCodeEnum.InvalidRequest,
+        message: `Unknown RPC message domain: '${request.domain}'`
+      })
+    }
+    return new RpcResponse(opts)
+  }
+
+  protected async ensureInitialized () {
+    if (!this.isInitialized) {
+      for (const m of this.middlewares.values()) {
+        await (m as IRpcMiddleware).setup({ server: this })
+      }
+      this.isInitialized = true
+    }
+  }
 }
