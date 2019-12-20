@@ -69,7 +69,7 @@ export class RpcServer
 
   private isInitialized = false
 
-  constructor (p: IRpcServerOpts) {
+  protected constructor (p: IRpcServerOpts) {
     super()
     this.env = p.env || {}
     this.host = p.host || 'localhost'
