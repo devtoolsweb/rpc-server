@@ -1,5 +1,5 @@
 import { IRpcRequest } from '@aperos/rpc-common'
-import { RpcMiddleware } from '../../lib'
+import { RpcMiddleware, RpcMethod } from '../../lib'
 
 interface ITestMethodParams {
   hello: string
@@ -10,11 +10,15 @@ interface ICalcSumParams {
   b: number
 }
 
-export class TestMiddleware extends RpcMiddleware {
+export class BaseMiddleware extends RpcMiddleware {
+  @RpcMethod()
   async testMethod (request: IRpcRequest<ITestMethodParams>): Promise<string> {
     return `This is a test string: ${request.params?.hello}:${Math.random()}`
   }
+}
 
+export class TestMiddleware extends BaseMiddleware {
+  @RpcMethod()
   async calcSum (request: IRpcRequest<ICalcSumParams>): Promise<number> {
     const p =  request.params!
     return p.a + p.b

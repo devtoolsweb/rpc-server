@@ -1,6 +1,5 @@
 import {
   IRpcRequest,
-  IRpcResponse,
   IRpcResponseOpts,
   RpcError,
   RpcErrorCodeEnum,
@@ -8,37 +7,16 @@ import {
   RpcRequest
 } from '@aperos/rpc-common'
 import {
-  IBaseEvents,
-  ITypedEventEmitter,
   EventEmitterMixin,
   EventEmitterConstructor
 } from '@aperos/event-emitter'
-import { BaseRpcServer, IBaseRpcMiddleware, IBaseRpcServer } from './rpc_base'
+import {
+  BaseRpcServer,
+  IBaseRpcMiddleware,
+  IBaseRpcServer,
+  IRpcServerEvents
+} from './rpc_base'
 import { IRpcMiddleware } from './rpc_middleware'
-
-export interface IRpcServerEvent {
-  readonly server: IRpcServer
-}
-
-export interface IRpcServerErrorEvent extends IRpcServerEvent {
-  readonly errorDescription: string
-  readonly requestData?: string
-}
-
-export interface IRpcServerRequestEvent extends IRpcServerEvent {
-  readonly request: IRpcRequest
-}
-
-export interface IRpcServerResponseEvent extends IRpcServerEvent {
-  readonly response: IRpcResponse
-}
-
-export interface IRpcServerEvents extends IBaseEvents {
-  readonly connect: (event: IRpcServerEvent) => void
-  readonly error: (event: IRpcServerErrorEvent) => void
-  readonly request: (event: IRpcServerRequestEvent) => void
-  readonly response: (event: IRpcServerResponseEvent) => void
-}
 
 export interface IRpcServerOpts {
   apiKeys?: string[]
@@ -47,9 +25,7 @@ export interface IRpcServerOpts {
   port: number
 }
 
-export interface IRpcServer
-  extends IBaseRpcServer,
-    ITypedEventEmitter<IRpcServerEvents> {
+export interface IRpcServer extends IBaseRpcServer {
   addMiddleware(m: IBaseRpcMiddleware, alias?: string): this
   start(): void
   stop(): void
@@ -104,15 +80,15 @@ export class RpcServer
   protected async dispatchRequest (request: IRpcRequest) {
     const m = this.middlewares.get(request.domain)
     const opts: IRpcResponseOpts = { id: request.id! }
-    if (m) {
-      opts.result = await (m as IRpcMiddleware).handleRequest(request)
-    } else {
-      opts.error = new RpcError({
-        code: RpcErrorCodeEnum.InvalidRequest,
-        message: `Unknown RPC message domain: '${request.domain}'`
-      })
-    }
-    return new RpcResponse(opts)
+    return m
+      ? await (m as IRpcMiddleware).handleRequest(request)
+      : new RpcResponse({
+          ...opts,
+          error: new RpcError({
+            code: RpcErrorCodeEnum.InvalidRequest,
+            message: `Unknown RPC message domain: '${request.domain}'`
+          })
+        })
   }
 
   protected async handleRequestData (requestData: string) {
