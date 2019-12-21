@@ -1,12 +1,12 @@
 import * as WebSocket from 'ws'
 import { IncomingMessage } from 'http'
 
-export interface IRpcSessionParams {
+export interface IRpcSessionOpts {
   readonly req: IncomingMessage
   readonly ws: WebSocket
 }
 
-export interface IRpcSession extends IRpcSessionParams {
+export interface IRpcSession extends IRpcSessionOpts {
   finalize(): void
   isAlive: boolean
 }
@@ -16,7 +16,7 @@ export class RpcSession implements IRpcSession {
   readonly req: IncomingMessage
   readonly ws: WebSocket
 
-  constructor (p: IRpcSessionParams) {
+  constructor (p: IRpcSessionOpts) {
     this.req = p.req
     this.ws = p.ws
   }
