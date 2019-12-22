@@ -11,7 +11,7 @@ import {
   IBaseRpcServer
 } from './rpc_base'
 
-export type RpcRequestHandler = (m: IRpcRequest) => Promise<object>
+export type RpcRequestHandler = (m: any) => Promise<object>
 
 export interface IRpcMiddlewareOpts {
   server: IBaseRpcServer
@@ -37,7 +37,10 @@ export class RpcMiddleware extends BaseRpcMiddleware implements IRpcMiddleware {
     if (xs) {
       const method = xs.get(req.verb)
       if (method) {
-        const result = await (method as RpcRequestHandler).call(this, req)
+        const result = await (method as RpcRequestHandler).call(
+          this,
+          req.params
+        )
         return new RpcResponse({
           id: req.id!,
           result
