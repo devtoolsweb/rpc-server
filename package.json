@@ -15,6 +15,7 @@
     "rollup-plugin-terser": "latest",
     "rollup-plugin-typescript2": "latest",
     "ts-node": "latest",
+    "ts-node-dev": "latest",
     "typescript": "latest"
   },
   "license": "MIT",
@@ -25,7 +26,7 @@
     "build-dts": "make-dts-bundle",
     "build-production": "BUILD=production npm run build",
     "clean": "rm -rf build dist",
-    "test-server": "ts-node examples/test_server",
+    "test-server": "ts-node-dev examples/test_server",
     "prepare": "npm run clean && npm run build-production"
   },
   "types": "dist/index.d.ts",

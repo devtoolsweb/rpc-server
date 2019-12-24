@@ -1,5 +1,6 @@
 import { ITypedEventEmitter, IBaseEvents } from '@aperos/event-emitter'
 import { IRpcRequest, IRpcResponse } from '@aperos/rpc-common'
+import { IncomingMessage } from 'http'
 
 export interface IBaseRpcMiddleware {
   readonly name?: string
@@ -15,6 +16,7 @@ export interface IRpcServerErrorEvent extends IRpcServerEvent {
 }
 
 export interface IRpcServerRequestEvent extends IRpcServerEvent {
+  readonly httpRequest: IncomingMessage
   readonly request: IRpcRequest
 }
 

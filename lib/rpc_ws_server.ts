@@ -33,7 +33,7 @@ export class RpcWsServer extends RpcServer {
       this.emit('connect', { server: this })
       const session = this.getSession(ws, req)
       session.isAlive = true
-      ws.on('message', async (m: string) => this.handleMessage(ws, m)).on(
+      ws.on('message', async (m: string) => this.handleMessage(req, ws, m)).on(
         'pong',
         () => {
           session.isAlive = true
@@ -47,8 +47,12 @@ export class RpcWsServer extends RpcServer {
     })
   }
 
-  protected async handleMessage (ws: WebSocket, m: string) {
-    const response = await this.handleRequestData(m)
+  protected async handleMessage (
+    req: IncomingMessage,
+    ws: WebSocket,
+    m: string
+  ) {
+    const response = await this.handleRequestData(req, m)
     try {
       ws.send(JSON.stringify(response))
       this.emit('response', { response, server: this })

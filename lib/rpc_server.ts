@@ -17,6 +17,7 @@ import {
   IRpcServerEvents
 } from './rpc_base'
 import { IRpcMiddleware } from './rpc_middleware'
+import { IncomingMessage } from 'http'
 
 export interface IRpcServerOpts {
   apiKeys?: string[]
@@ -91,12 +92,15 @@ export class RpcServer
         })
   }
 
-  protected async handleRequestData (requestData: string) {
+  protected async handleRequestData (
+    httpRequest: IncomingMessage,
+    requestData: string
+  ) {
     try {
       const request = new RpcRequest(
         RpcRequest.makePropsFromJson(JSON.parse(requestData))
       )
-      this.emit('request', { request, server: this })
+      this.emit('request', { httpRequest, request, server: this })
       return this.authenticateRequest(request)
         ? await this.dispatchRequest(request)
         : new RpcResponse({

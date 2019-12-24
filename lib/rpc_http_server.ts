@@ -1,4 +1,4 @@
-import { Server, createServer, ServerResponse } from 'http'
+import { Server, createServer, ServerResponse, IncomingMessage } from 'http'
 import { IRpcServerOpts, RpcServer } from './rpc_server'
 
 export class RpcHttpServer extends RpcServer {
@@ -9,10 +9,12 @@ export class RpcHttpServer extends RpcServer {
   constructor (p: IRpcServerOpts) {
     super(p)
     this.server = createServer(async (request, response) => {
-      const origin = (request.headers as any).origin
       if (request.method === 'OPTIONS') {
         response.setHeader('Access-Control-Allow-Credentials', 'true')
-        response.setHeader('Access-Control-Allow-Origin', origin)
+        response.setHeader(
+          'Access-Control-Allow-Origin',
+          (request.headers as any).origin
+        )
         response.setHeader(
           'Access-Control-Allow-Headers',
           'Origin, X-Requested-With, Content-Type, Accept, Authorization'
@@ -29,25 +31,28 @@ export class RpcHttpServer extends RpcServer {
         request.on('data', chunk => chunks.push(chunk))
         request.on('end', async () => {
           const postData = Buffer.concat(chunks).toString()
-          this.handlePostData(response, postData, origin)
+          this.handlePostData(request, response, postData)
         })
       }
     })
   }
 
   protected async handlePostData (
+    httpRequest: IncomingMessage,
     httpResponse: ServerResponse,
-    postData: string,
-    origin: string
+    postData: string
   ) {
-    const response = await this.handleRequestData(postData)
+    const response = await this.handleRequestData(httpRequest, postData)
     try {
       /**
        * The standard HTTP error code for any RPC responses should be 200,
        * regardless of whether the RPC response contains an error or not.
        */
       httpResponse.setHeader('Access-Control-Allow-Credentials', 'true')
-      httpResponse.setHeader('Access-Control-Allow-Origin', origin)
+      httpResponse.setHeader(
+        'Access-Control-Allow-Origin',
+        (httpRequest.headers as any).origin
+      )
       httpResponse.setHeader('Content-Type', 'application/json')
       const s = JSON.stringify(response)
       httpResponse.write(s)

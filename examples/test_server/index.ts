@@ -2,7 +2,7 @@ import { RpcWsServer, RpcHttpServer } from '../../lib'
 import { TestMiddleware } from './test_middleware'
 import { IRpcServer } from 'lib/rpc_server'
 
-const host = 'localhost'
+const host = '0.0.0.0'
 const wsPort = 3001
 const httpPort = 3002
 
@@ -13,7 +13,7 @@ const setupEventHandlers = (server: IRpcServer) => {
   server
     .on('request', event =>
       console.log(
-        `Client sent request:`,
+        `Client request from ${event.httpRequest.connection.remoteAddress}:`,
         JSON.stringify(event.request, null, '  ')
       )
     )
