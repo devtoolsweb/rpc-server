@@ -1,27 +1,31 @@
-import * as WebSocket from 'ws'
-import { IncomingMessage } from 'http'
-
 export interface IRpcSessionOpts {
-  readonly req: IncomingMessage
-  readonly ws: WebSocket
+  timeout?: number
 }
 
-export interface IRpcSession extends IRpcSessionOpts {
-  finalize(): void
-  isAlive: boolean
+export interface IRpcSession {
+  readonly isAlive: boolean
+  readonly timeout: number
+  reset(): this
 }
 
 export class RpcSession implements IRpcSession {
-  isAlive: boolean = true
-  readonly req: IncomingMessage
-  readonly ws: WebSocket
+  static standardTimeout = 30000
+
+  readonly timeout: number
+
+  private startTime: Date = new Date()
 
   constructor (p: IRpcSessionOpts) {
-    this.req = p.req
-    this.ws = p.ws
+    const t = p.timeout || 0
+    this.timeout = t > 0 ? t : RpcSession.standardTimeout
   }
 
-  finalize (): void {
-    this.ws.terminate()
+  get isAlive () {
+    return new Date().getTime() - this.startTime.getTime() < this.timeout
+  }
+
+  reset () {
+    this.startTime = new Date()
+    return this
   }
 }

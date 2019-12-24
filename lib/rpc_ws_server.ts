@@ -8,7 +8,7 @@ export interface IRpcWsServerOpts extends IRpcServerOpts {
 }
 
 export class RpcWsServer extends RpcServer {
-  static standardHeartbeatTimeout = 30000
+  static standardHeartbeatTimeout = 3000
 
   readonly heartbeatTimeout: number
 
@@ -31,16 +31,15 @@ export class RpcWsServer extends RpcServer {
   protected async performStart () {
     this.wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
       this.emit('connect', { server: this })
-      const session = this.getSession(ws, req)
-      session.isAlive = true
-      ws.on('message', async (m: string) => this.handleMessage(req, ws, m)).on(
-        'pong',
-        () => {
-          session.isAlive = true
-        }
-      )
+      const session = this.getSession(ws)
+      ws.on('message', async (m: string) => {
+        this.handleMessage(req, ws, m)
+        session.reset()
+      }).on('pong', () => {
+        session.reset()
+      })
       const hb = () => {
-        this.deleteBrokenSessions()
+        this.updateSessions()
         this.heartbeatTimer = global.setTimeout(hb, this.heartbeatTimeout)
       }
       hb()
@@ -57,7 +56,6 @@ export class RpcWsServer extends RpcServer {
       ws.send(JSON.stringify(response))
       this.emit('response', { response, server: this })
     } catch (e) {
-      this.deleteBrokenSessions()
       this.emit('error', {
         server: this,
         errorDescription: `Error sending response to client -- ${e.message}`
@@ -74,31 +72,21 @@ export class RpcWsServer extends RpcServer {
     this.wss.close()
   }
 
-  private deleteBrokenSessions (): void {
-    const xs = new Set<IRpcSession>()
+  private updateSessions () {
+    const xs = this.sessions
     this.wss.clients.forEach(ws => {
-      const x = this.sessions.get(ws)!
-      if (x) {
-        if (x.isAlive) {
-          xs.add(x)
-          x.isAlive = false
-          ws.ping(() => {})
-        } else {
-          x.finalize()
-        }
-      }
-    })
-    this.sessions.forEach(x => {
-      if (!xs.has(x)) {
-        this.sessions.delete(x.ws)
+      const x = xs.get(ws)
+      if (x && !x.isAlive) {
+        ws.terminate()
+        xs.delete(ws)
       }
     })
   }
 
-  private getSession (ws: WebSocket, req: IncomingMessage): IRpcSession {
+  private getSession (ws: WebSocket): IRpcSession {
     let s = this.sessions.get(ws)
     if (!s) {
-      s = new RpcSession({ req, ws })
+      s = new RpcSession({})
       this.sessions.set(ws, s)
     }
     return s
