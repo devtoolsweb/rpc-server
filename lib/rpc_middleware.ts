@@ -15,13 +15,13 @@ import {
 export type RpcRequestHandler = (m: any) => Promise<object | IRpcError>
 
 export interface IRpcMiddlewareOpts {
-  server: IBaseRpcServer
+  handleExceptions?: boolean
 }
 
 export interface IRpcMiddleware extends IBaseRpcMiddleware {
   handleRequest(request: IRpcRequest): Promise<IRpcResponse>
   getPropertyValue(name: string): Promise<any>
-  setup(p: IRpcMiddlewareOpts): Promise<void>
+  setup(server: IBaseRpcServer): Promise<void>
 }
 
 const symRpcMethods = Symbol('RpcMiddleware.methods')
@@ -33,7 +33,13 @@ const isErrorResult = (result: unknown): result is IRpcError => {
 }
 
 export class RpcMiddleware extends BaseRpcMiddleware implements IRpcMiddleware {
+  protected handleExceptions: boolean
   protected server!: IBaseRpcServer
+
+  constructor(p: IRpcMiddlewareOpts = {}) {
+    super()
+    this.handleExceptions = p.handleExceptions === true
+  }
 
   async applyHooks(): Promise<void> {}
 
@@ -42,16 +48,31 @@ export class RpcMiddleware extends BaseRpcMiddleware implements IRpcMiddleware {
     if (xs) {
       const method = xs.get(req.verb)
       if (method) {
-        const result = await (method as RpcRequestHandler).call(
-          this,
-          req.params
-        )
-        return new RpcResponse({
-          id: req.id!,
-          ...(isErrorResult(result)
-            ? { error: result as IRpcError }
-            : { result })
-        })
+        const id = req.id!
+        try {
+          const result = await (method as RpcRequestHandler).call(
+            this,
+            req.params
+          )
+          return new RpcResponse({
+            id,
+            ...(isErrorResult(result)
+              ? { error: result as IRpcError }
+              : { result })
+          })
+        } catch (e) {
+          if (this.handleExceptions) {
+            return new RpcResponse({
+              id,
+              error: new RpcError({
+                code: RpcErrorCodeEnum.InternalError,
+                message: e.message
+              })
+            })
+          } else {
+            throw e
+          }
+        }
       }
     }
     const message = xs
@@ -77,8 +98,8 @@ export class RpcMiddleware extends BaseRpcMiddleware implements IRpcMiddleware {
     return (this as any)[name]
   }
 
-  async setup(p: IRpcMiddlewareOpts) {
-    this.server = p.server
+  async setup(server: IBaseRpcServer) {
+    this.server = server
     await this.initialize()
   }
 

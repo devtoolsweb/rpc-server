@@ -30,4 +30,9 @@ export class TestMiddleware extends BaseMiddleware {
       message: 'Internal error in the test middleware occured'
     })
   }
+
+  @RpcMethod()
+  async methodWithException(): Promise<number | IRpcError> {
+    throw new Error('Exception thrown in test middleware')
+  }
 }

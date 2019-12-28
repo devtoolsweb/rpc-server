@@ -46,7 +46,7 @@ export class RpcServer
 
   private isInitialized = false
 
-  protected constructor (p: IRpcServerOpts) {
+  protected constructor(p: IRpcServerOpts) {
     super()
     this.env = p.env || {}
     this.host = p.host || 'localhost'
@@ -56,7 +56,7 @@ export class RpcServer
     }
   }
 
-  addMiddleware (m: IBaseRpcMiddleware, alias?: string): this {
+  addMiddleware(m: IBaseRpcMiddleware, alias?: string): this {
     const name = m.name || alias
     if (name) {
       this.middlewares.set(name, m)
@@ -65,20 +65,20 @@ export class RpcServer
     throw new Error(`Middleware name must be specified`)
   }
 
-  async start () {
+  async start() {
     await this.ensureInitialized()
     await this.performStart()
   }
 
-  async stop () {
+  async stop() {
     await this.performStop()
   }
 
-  protected async authenticateRequest (r: IRpcRequest) {
+  protected async authenticateRequest(r: IRpcRequest) {
     return !this.apiKeys || (r.apiKey && this.apiKeys.has(r.apiKey))
   }
 
-  protected async dispatchRequest (request: IRpcRequest) {
+  protected async dispatchRequest(request: IRpcRequest) {
     const m = this.middlewares.get(request.domain)
     const opts: IRpcResponseOpts = { id: request.id! }
     return m
@@ -92,7 +92,7 @@ export class RpcServer
         })
   }
 
-  protected async handleRequestData (
+  protected async handleRequestData(
     httpRequest: IncomingMessage,
     requestData: string
   ) {
@@ -126,16 +126,16 @@ export class RpcServer
     }
   }
 
-  protected async ensureInitialized () {
+  protected async ensureInitialized() {
     if (!this.isInitialized) {
       for (const m of this.middlewares.values()) {
-        await (m as IRpcMiddleware).setup({ server: this })
+        await (m as IRpcMiddleware).setup(this)
       }
       this.isInitialized = true
     }
   }
 
-  protected async performStart () {}
+  protected async performStart() {}
 
-  protected async performStop () {}
+  protected async performStop() {}
 }
