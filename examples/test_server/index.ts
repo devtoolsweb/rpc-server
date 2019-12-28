@@ -34,7 +34,7 @@ console.log(`Running web socket RPC server at http://${host}:${wsPort}`)
 const wsServer = new RpcWsServer({ host, port: wsPort })
 setupEventHandlers(wsServer)
 
-const opts: IRpcMiddlewareOpts = { handleExceptions: true }
+const opts: IRpcMiddlewareOpts = { convertExceptionsToErrors: true }
 httpServer.addMiddleware(new TestMiddleware(opts), 'TestDomain')
 wsServer.addMiddleware(new TestMiddleware(opts), 'TestDomain')
 

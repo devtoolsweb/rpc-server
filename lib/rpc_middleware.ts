@@ -15,7 +15,7 @@ import {
 export type RpcRequestHandler = (m: any) => Promise<object | IRpcError>
 
 export interface IRpcMiddlewareOpts {
-  handleExceptions?: boolean
+  convertExceptionsToErrors?: boolean
 }
 
 export interface IRpcMiddleware extends IBaseRpcMiddleware {
@@ -33,12 +33,12 @@ const isErrorResult = (result: unknown): result is IRpcError => {
 }
 
 export class RpcMiddleware extends BaseRpcMiddleware implements IRpcMiddleware {
-  protected handleExceptions: boolean
+  protected convertExceptionsToErrors: boolean
   protected server!: IBaseRpcServer
 
   constructor(p: IRpcMiddlewareOpts = {}) {
     super()
-    this.handleExceptions = p.handleExceptions === true
+    this.convertExceptionsToErrors = p.convertExceptionsToErrors === true
   }
 
   async applyHooks(): Promise<void> {}
@@ -61,7 +61,7 @@ export class RpcMiddleware extends BaseRpcMiddleware implements IRpcMiddleware {
               : { result })
           })
         } catch (e) {
-          if (this.handleExceptions) {
+          if (this.convertExceptionsToErrors) {
             return new RpcResponse({
               id,
               error: new RpcError({
