@@ -3,7 +3,8 @@ import {
   IRpcResponse,
   RpcError,
   RpcErrorCodeEnum,
-  RpcResponse
+  RpcResponse,
+  IRpcError
 } from '@aperos/rpc-common'
 import {
   BaseRpcMiddleware,
@@ -11,7 +12,7 @@ import {
   IBaseRpcServer
 } from './rpc_base'
 
-export type RpcRequestHandler = (m: any) => Promise<object>
+export type RpcRequestHandler = (m: any) => Promise<object | IRpcError>
 
 export interface IRpcMiddlewareOpts {
   server: IBaseRpcServer
@@ -27,12 +28,16 @@ const symRpcMethods = Symbol('RpcMiddleware.methods')
 
 type RpcMethodMap = Map<string, RpcRequestHandler>
 
+const isErrorResult = (result: unknown): result is IRpcError => {
+  return result instanceof RpcError
+}
+
 export class RpcMiddleware extends BaseRpcMiddleware implements IRpcMiddleware {
   protected server!: IBaseRpcServer
 
-  async applyHooks (): Promise<void> {}
+  async applyHooks(): Promise<void> {}
 
-  async handleRequest (req: IRpcRequest): Promise<IRpcResponse> {
+  async handleRequest(req: IRpcRequest): Promise<IRpcResponse> {
     const xs = (this as any)[symRpcMethods] as RpcMethodMap
     if (xs) {
       const method = xs.get(req.verb)
@@ -43,7 +48,9 @@ export class RpcMiddleware extends BaseRpcMiddleware implements IRpcMiddleware {
         )
         return new RpcResponse({
           id: req.id!,
-          result
+          ...(isErrorResult(result)
+            ? { error: result as IRpcError }
+            : { result })
         })
       }
     }
@@ -66,19 +73,19 @@ export class RpcMiddleware extends BaseRpcMiddleware implements IRpcMiddleware {
   /**
    * Can be used by other middleware.
    */
-  async getPropertyValue (name: string): Promise<any> {
+  async getPropertyValue(name: string): Promise<any> {
     return (this as any)[name]
   }
 
-  async setup (p: IRpcMiddlewareOpts) {
+  async setup(p: IRpcMiddlewareOpts) {
     this.server = p.server
     await this.initialize()
   }
 
-  protected async initialize () {}
+  protected async initialize() {}
 }
 
-export function RpcMethod (methodName?: string) {
+export function RpcMethod(methodName?: string) {
   return (target: Object, key: string, descriptor: PropertyDescriptor) => {
     if (!(target instanceof RpcMiddleware)) {
       throw new Error(
