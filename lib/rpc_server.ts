@@ -35,9 +35,8 @@ export interface IRpcServer extends IBaseRpcServer {
 export class RpcServer
   extends EventEmitterMixin<
     IRpcServerEvents,
-    EventEmitterConstructor<BaseRpcServer>
-  >(BaseRpcServer)
-  implements IRpcServer {
+    EventEmitterConstructor<BaseRpcServer>>(BaseRpcServer)
+implements IRpcServer {
   readonly apiKeys?: Set<string>
   readonly env: Record<string, any>
   readonly host: string
@@ -82,14 +81,14 @@ export class RpcServer
     const m = this.middlewares.get(request.domain)
     const opts: IRpcResponseOpts = { id: request.id! }
     return m
-      ? await (m as IRpcMiddleware).handleRequest(request)
+      ? (m as IRpcMiddleware).handleRequest(request)
       : new RpcResponse({
-          ...opts,
-          error: new RpcError({
-            code: RpcErrorCodeEnum.InvalidRequest,
-            message: `Unknown RPC message domain: '${request.domain}'`
-          })
+        ...opts,
+        error: new RpcError({
+          code: RpcErrorCodeEnum.InvalidRequest,
+          message: `Unknown RPC message domain: '${request.domain}'`
         })
+      })
   }
 
   protected async handleRequestData(
@@ -104,12 +103,12 @@ export class RpcServer
       return this.authenticateRequest(request)
         ? await this.dispatchRequest(request)
         : new RpcResponse({
-            error: new RpcError({
-              code: RpcErrorCodeEnum.AuthenticationRequired,
-              message: 'Session not authenticated'
-            }),
-            id: request.id!
-          })
+          error: new RpcError({
+            code: RpcErrorCodeEnum.AuthenticationRequired,
+            message: 'Session not authenticated'
+          }),
+          id: request.id!
+        })
     } catch (e) {
       this.emit('error', {
         errorDescription: e.message,

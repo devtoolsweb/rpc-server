@@ -38,5 +38,7 @@ const opts: IRpcMiddlewareOpts = { convertExceptionsToErrors: true }
 httpServer.addMiddleware(new TestMiddleware(opts), 'TestDomain')
 wsServer.addMiddleware(new TestMiddleware(opts), 'TestDomain')
 
-httpServer.start()
-wsServer.start()
+setTimeout(async () => {
+  await httpServer.start()
+  await wsServer.start()
+}, 0)

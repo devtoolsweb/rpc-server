@@ -50,15 +50,10 @@ export class RpcMiddleware extends BaseRpcMiddleware implements IRpcMiddleware {
       if (method) {
         const id = req.id!
         try {
-          const result = await (method as RpcRequestHandler).call(
-            this,
-            req.params
-          )
+          const result = await method.call(this, req.params)
           return new RpcResponse({
             id,
-            ...(isErrorResult(result)
-              ? { error: result as IRpcError }
-              : { result })
+            ...(isErrorResult(result) ? { error: result } : { result })
           })
         } catch (e) {
           if (this.convertExceptionsToErrors) {

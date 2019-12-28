@@ -16,6 +16,7 @@
     "rollup-plugin-typescript2": "latest",
     "ts-node": "latest",
     "ts-node-dev": "latest",
+    "tslint": "latest",
     "typescript": "latest"
   },
   "license": "MIT",

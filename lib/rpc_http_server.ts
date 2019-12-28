@@ -31,7 +31,7 @@ export class RpcHttpServer extends RpcServer {
         request.on('data', chunk => chunks.push(chunk))
         request.on('end', async () => {
           const postData = Buffer.concat(chunks).toString()
-          this.handlePostData(request, response, postData)
+          await this.handlePostData(request, response, postData)
         })
       }
     })

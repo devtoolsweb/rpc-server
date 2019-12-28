@@ -16,7 +16,7 @@ export class RpcWsServer extends RpcServer {
   private heartbeatTimer?: NodeJS.Timeout
   private wss: WebSocket.Server
 
-  constructor (p: IRpcWsServerOpts) {
+  constructor(p: IRpcWsServerOpts) {
     super(p)
     this.wss = new WebSocket.Server({
       host: this.host,
@@ -28,12 +28,12 @@ export class RpcWsServer extends RpcServer {
     )
   }
 
-  protected async performStart () {
+  protected async performStart() {
     this.wss.on('connection', async (ws: WebSocket, req: IncomingMessage) => {
       this.emit('connect', { server: this })
       const session = this.getSession(ws)
       ws.on('message', async (m: string) => {
-        this.handleMessage(req, ws, m)
+        await this.handleMessage(req, ws, m)
         session.reset()
       }).on('pong', () => {
         session.reset()
@@ -46,7 +46,7 @@ export class RpcWsServer extends RpcServer {
     })
   }
 
-  protected async handleMessage (
+  protected async handleMessage(
     req: IncomingMessage,
     ws: WebSocket,
     m: string
@@ -63,7 +63,7 @@ export class RpcWsServer extends RpcServer {
     }
   }
 
-  protected async performStop () {
+  protected async performStop() {
     if (this.heartbeatTimer) {
       clearTimeout(this.heartbeatTimer)
       delete this.heartbeatTimer
@@ -72,7 +72,7 @@ export class RpcWsServer extends RpcServer {
     this.wss.close()
   }
 
-  private updateSessions () {
+  private updateSessions() {
     const xs = this.sessions
     this.wss.clients.forEach(ws => {
       const x = xs.get(ws)
@@ -83,7 +83,7 @@ export class RpcWsServer extends RpcServer {
     })
   }
 
-  private getSession (ws: WebSocket): IRpcSession {
+  private getSession(ws: WebSocket): IRpcSession {
     let s = this.sessions.get(ws)
     if (!s) {
       s = new RpcSession({})
