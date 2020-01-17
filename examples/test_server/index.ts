@@ -1,6 +1,10 @@
-import { RpcWsServer, RpcHttpServer, IRpcMiddlewareOpts } from '../../lib'
+import {
+  IRpcMiddlewareOpts,
+  IRpcServer,
+  RpcHttpServer,
+  RpcWsServer
+} from '../../lib'
 import { TestMiddleware } from './test_middleware'
-import { IRpcServer } from 'lib/rpc_server'
 
 const host = '0.0.0.0'
 const wsPort = 3001
