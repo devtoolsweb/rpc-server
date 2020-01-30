@@ -31,5 +31,5 @@
     "prepare": "npm run clean && npm run build-production"
   },
   "types": "dist/index.d.ts",
-  "version": "0.0.11"
+  "version": "0.0.15"
 }
