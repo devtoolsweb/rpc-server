@@ -6,16 +6,8 @@ import {
   RpcResponse,
   RpcRequest
 } from '@aperos/rpc-common'
-import {
-  EventEmitterMixin,
-  EventEmitterConstructor
-} from '@aperos/event-emitter'
-import {
-  BaseRpcServer,
-  IBaseRpcMiddleware,
-  IBaseRpcServer,
-  IRpcServerEvents
-} from './rpc_base'
+import { EventEmitterMixin, EventEmitterConstructor } from '@aperos/event-emitter'
+import { BaseRpcServer, IBaseRpcMiddleware, IBaseRpcServer, IRpcServerEvents } from './rpc_base'
 import { IRpcMiddleware } from './rpc_middleware'
 import { IncomingMessage } from 'http'
 
@@ -33,10 +25,8 @@ export interface IRpcServer extends IBaseRpcServer {
 }
 
 export class RpcServer
-  extends EventEmitterMixin<
-    IRpcServerEvents,
-    EventEmitterConstructor<BaseRpcServer>>(BaseRpcServer)
-implements IRpcServer {
+  extends EventEmitterMixin<IRpcServerEvents, EventEmitterConstructor<BaseRpcServer>>(BaseRpcServer)
+  implements IRpcServer {
   readonly apiKeys?: Set<string>
   readonly env: Record<string, any>
   readonly host: string
@@ -83,32 +73,30 @@ implements IRpcServer {
     return m
       ? (m as IRpcMiddleware).handleRequest(request)
       : new RpcResponse({
-        ...opts,
-        error: new RpcError({
-          code: RpcErrorCodeEnum.InvalidRequest,
-          message: `Unknown RPC message domain: '${request.domain}'`
+          ...opts,
+          error: new RpcError({
+            code: RpcErrorCodeEnum.InvalidRequest,
+            message: `Unknown RPC message domain: '${request.domain}'`
+          })
         })
-      })
   }
 
-  protected async handleRequestData(
-    httpRequest: IncomingMessage,
-    requestData: string
-  ) {
+  protected async handleRequestData(httpRequest: IncomingMessage, requestData: string) {
     try {
-      const request = new RpcRequest(
-        RpcRequest.makePropsFromJson(JSON.parse(requestData))
-      )
+      const request = new RpcRequest(RpcRequest.makePropsFromJson(JSON.parse(requestData)))
+      if (request.method === 'ping') {
+        return new RpcResponse({ id: request.id!, result: 'pong' })
+      }
       this.emit('request', { httpRequest, request, server: this })
       return this.authenticateRequest(request)
         ? await this.dispatchRequest(request)
         : new RpcResponse({
-          error: new RpcError({
-            code: RpcErrorCodeEnum.AuthenticationRequired,
-            message: 'Session not authenticated'
-          }),
-          id: request.id!
-        })
+            error: new RpcError({
+              code: RpcErrorCodeEnum.AuthenticationRequired,
+              message: 'Session not authenticated'
+            }),
+            id: request.id!
+          })
     } catch (e) {
       this.emit('error', {
         errorDescription: e.message,
