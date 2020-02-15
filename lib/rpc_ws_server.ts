@@ -46,11 +46,7 @@ export class RpcWsServer extends RpcServer {
     })
   }
 
-  protected async handleMessage(
-    req: IncomingMessage,
-    ws: WebSocket,
-    m: string
-  ) {
+  protected async handleMessage(req: IncomingMessage, ws: WebSocket, m: string) {
     const response = await this.handleRequestData(req, m)
     try {
       ws.send(JSON.stringify(response))
