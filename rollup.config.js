@@ -1,4 +1,5 @@
 import path from 'path'
+import pluginDts from 'rollup-plugin-dts'
 import pluginTypescript from 'rollup-plugin-typescript2'
 import { terser as pluginTerser } from 'rollup-plugin-terser'
 import pkg from './package.json'
@@ -34,5 +35,11 @@ export default [
       sourcemap: true
     },
     plugins
+  },
+  {
+    input: './build/lib/index.d.ts',
+    external,
+    output: [{ file: path.join(targetDir, 'index.d.ts'), format: 'es' }],
+    plugins: [pluginDts({ verbose: true })]
   }
 ]

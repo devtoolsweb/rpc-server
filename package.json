@@ -9,9 +9,8 @@
   },
   "description": "TypeScript implementation of a RPC server based on WebSockets",
   "devDependencies": {
-    "make-dts-bundle": "latest",
-    "dts-bundle": "latest",
     "rollup": "latest",
+    "rollup-plugin-dts": "latest",
     "rollup-plugin-terser": "latest",
     "rollup-plugin-typescript2": "latest",
     "ts-node": "latest",
@@ -23,8 +22,7 @@
   "name": "@aperos/rpc-server",
   "main": "dist/index.js",
   "scripts": {
-    "build": "rollup -c && npm run build-dts",
-    "build-dts": "make-dts-bundle",
+    "build": "rollup -c",
     "build-production": "BUILD=production npm run build",
     "clean": "rm -rf build dist",
     "test-server": "ts-node-dev examples/test_server",
