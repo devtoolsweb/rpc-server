@@ -20,7 +20,8 @@
   },
   "license": "MIT",
   "name": "@aperos/rpc-server",
-  "main": "dist/index.js",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
   "scripts": {
     "build": "rollup -c",
     "build-production": "BUILD=production npm run build",
