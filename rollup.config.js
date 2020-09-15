@@ -1,11 +1,12 @@
 import path from 'path'
+import builtins from 'builtin-modules'
 import pluginDts from 'rollup-plugin-dts'
 import pluginTypescript from 'rollup-plugin-typescript2'
 import { terser as pluginTerser } from 'rollup-plugin-terser'
 import pkg from './package.json'
 import tsconfig from './tsconfig.json'
 
-const external = Object.keys(pkg.dependencies || {})
+const external = [...builtins, ...Object.keys(pkg.dependencies || {})]
 const buildDir = tsconfig.compilerOptions.outDir
 const targetDir = 'dist'
 
@@ -25,7 +26,13 @@ if (process.env.BUILD === 'production') {
   )
 }
 
-const makeConf = (input, file, format = 'cjs', plugins = null, sourcemap = true) => ({
+const makeConf = (
+  input,
+  file,
+  format = 'cjs',
+  plugins = null,
+  sourcemap = true
+) => ({
   external,
   input,
   output: { file, format, sourcemap },
@@ -36,7 +43,13 @@ export default [
   makeConf('lib/index.ts', path.join(targetDir, 'index.cjs.js')),
   makeConf('lib/index.ts', path.join(targetDir, 'index.esm.js'), 'es'),
   makeConf(
-    path.join(...[buildDir, ...(tsconfig.include.length > 1 ? ['lib'] : []), 'index.d.ts']),
+    path.join(
+      ...[
+        buildDir,
+        ...(tsconfig.include.length > 1 ? ['lib'] : []),
+        'index.d.ts'
+      ]
+    ),
     path.join(targetDir, 'index.d.ts'),
     'es',
     [pluginDts({ verbose: true })],
