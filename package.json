@@ -7,7 +7,7 @@
     "@types/ws": "latest",
     "ws": "latest"
   },
-  "description": "TypeScript implementation of a RPC server based on WebSockets",
+  "description": "RPC server implementation with WebSockets support",
   "devDependencies": {
     "builtin-modules": "latest",
     "rollup": "latest",
