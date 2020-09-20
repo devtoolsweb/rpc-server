@@ -1,10 +1,10 @@
 import {
-  IRpcMiddlewareArgs,
+  IRpcBackendArgs,
   IRpcServer,
   RpcHttpServer,
   RpcWsServer
 } from '../../lib'
-import { TestMiddleware } from './test_middleware'
+import { TestBackend } from './test_backend'
 
 const host = '0.0.0.0'
 const wsPort = 3001
@@ -38,9 +38,9 @@ console.log(`Running web socket RPC server at http://${host}:${wsPort}`)
 const wsServer = new RpcWsServer({ host, port: wsPort })
 setupEventHandlers(wsServer)
 
-const args: IRpcMiddlewareArgs = { convertExceptionsToErrors: true }
-httpServer.addMiddleware(new TestMiddleware(args), 'TestDomain')
-wsServer.addMiddleware(new TestMiddleware(args), 'TestDomain')
+const args: IRpcBackendArgs = { convertExceptionsToErrors: true }
+httpServer.addBackend(new TestBackend(args), 'TestDomain')
+wsServer.addBackend(new TestBackend(args), 'TestDomain')
 
 setTimeout(async () => {
   await httpServer.start()

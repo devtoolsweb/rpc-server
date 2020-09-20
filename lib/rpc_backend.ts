@@ -1,10 +1,10 @@
 import {
-  IRpcError,
   IRpcRequest,
   IRpcResponse,
   RpcError,
   RpcErrorCodeEnum,
-  RpcResponse
+  RpcResponse,
+  IRpcError
 } from '@aperos/rpc-common'
 import { BaseRpcBackend, IBaseRpcBackend, IBaseRpcServer } from './rpc_base'
 
@@ -83,7 +83,7 @@ export class RpcBackend extends BaseRpcBackend implements IRpcBackend {
   }
 
   /**
-   * Can be used by other middleware.
+   * Can be used by other backend.
    */
   async getPropertyValue(name: string): Promise<any> {
     return (this as any)[name]

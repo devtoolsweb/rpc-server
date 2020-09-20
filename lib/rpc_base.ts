@@ -2,7 +2,7 @@ import { ITypedEventEmitter, IBaseEvents } from '@aperos/event-emitter'
 import { IRpcRequest, IRpcResponse } from '@aperos/rpc-common'
 import { IncomingMessage } from 'http'
 
-export interface IBaseRpcMiddleware {
+export interface IBaseRpcBackend {
   readonly name?: string
 }
 
@@ -34,13 +34,13 @@ export interface IRpcServerEvents extends IBaseEvents {
 export interface IBaseRpcServer extends ITypedEventEmitter<IRpcServerEvents> {
   readonly env: Record<string, any>
   readonly host: string
-  readonly middlewares: Map<string, IBaseRpcMiddleware>
+  readonly backends: Map<string, IBaseRpcBackend>
   readonly port: number
 }
 
 export class BaseRpcServer {}
 
-export class BaseRpcMiddleware {
+export class BaseRpcBackend {
   get name () {
     return ''
   }

@@ -12,11 +12,11 @@ import {
 } from '@aperos/event-emitter'
 import {
   BaseRpcServer,
-  IBaseRpcMiddleware,
+  IBaseRpcBackend,
   IBaseRpcServer,
   IRpcServerEvents
 } from './rpc_base'
-import { IRpcMiddleware } from './rpc_middleware'
+import { IRpcBackend } from './rpc_backend'
 import { IncomingMessage } from 'http'
 
 export interface IRpcServerArgs {
@@ -27,7 +27,7 @@ export interface IRpcServerArgs {
 }
 
 export interface IRpcServer extends IBaseRpcServer {
-  addMiddleware(m: IBaseRpcMiddleware, alias?: string): this
+  addBackend(backend: IBaseRpcBackend, alias?: string): this
   start(): void
   stop(): void
 }
@@ -41,7 +41,7 @@ export class RpcServer
   readonly apiKeys?: Set<string>
   readonly env: Record<string, any>
   readonly host: string
-  readonly middlewares = new Map<string, IBaseRpcMiddleware>()
+  readonly backends = new Map<string, IBaseRpcBackend>()
   readonly port: number
 
   private isInitialized = false
@@ -56,13 +56,13 @@ export class RpcServer
     }
   }
 
-  addMiddleware(m: IBaseRpcMiddleware, alias?: string): this {
+  addBackend(m: IBaseRpcBackend, alias?: string): this {
     const name = m.name || alias
     if (name) {
-      this.middlewares.set(name, m)
+      this.backends.set(name, m)
       return this
     }
-    throw new Error(`Middleware name must be specified`)
+    throw new Error(`Backend alias must be specified`)
   }
 
   async start() {
@@ -79,10 +79,10 @@ export class RpcServer
   }
 
   protected async dispatchRequest(request: IRpcRequest) {
-    const m = this.middlewares.get(request.domain)
+    const m = this.backends.get(request.domain)
     const opts: IRpcResponseArgs = { id: request.id! }
     return m
-      ? (m as IRpcMiddleware).handleRequest(request)
+      ? (m as IRpcBackend).handleRequest(request)
       : new RpcResponse({
           ...opts,
           error: new RpcError({
@@ -131,8 +131,8 @@ export class RpcServer
 
   protected async ensureInitialized() {
     if (!this.isInitialized) {
-      for (const m of this.middlewares.values()) {
-        await (m as IRpcMiddleware).setup(this)
+      for (const m of this.backends.values()) {
+        await (m as IRpcBackend).setup(this)
       }
       this.isInitialized = true
     }
