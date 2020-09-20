@@ -1,9 +1,9 @@
 import * as WebSocket from 'ws'
 import { IncomingMessage } from 'http'
 import { IRpcSession, RpcSession } from './rpc_session'
-import { IRpcServerOpts, RpcServer } from './rpc_server'
+import { IRpcServerArgs, RpcServer } from './rpc_server'
 
-export interface IRpcWsServerOpts extends IRpcServerOpts {
+export interface IRpcWsServerArgs extends IRpcServerArgs {
   heartbeatTimeout?: number
 }
 
@@ -16,14 +16,14 @@ export class RpcWsServer extends RpcServer {
   private heartbeatTimer?: NodeJS.Timeout
   private wss: WebSocket.Server
 
-  constructor(p: IRpcWsServerOpts) {
-    super(p)
+  constructor(args: IRpcWsServerArgs) {
+    super(args)
     this.wss = new WebSocket.Server({
       host: this.host,
       port: this.port
     })
     this.heartbeatTimeout = Math.min(
-      p.heartbeatTimeout || RpcWsServer.standardHeartbeatTimeout,
+      args.heartbeatTimeout || RpcWsServer.standardHeartbeatTimeout,
       1000
     )
   }
@@ -46,7 +46,11 @@ export class RpcWsServer extends RpcServer {
     })
   }
 
-  protected async handleMessage(req: IncomingMessage, ws: WebSocket, m: string) {
+  protected async handleMessage(
+    req: IncomingMessage,
+    ws: WebSocket,
+    m: string
+  ) {
     const response = await this.handleRequestData(req, m)
     try {
       ws.send(JSON.stringify(response))

@@ -1,30 +1,26 @@
 import {
+  IRpcError,
   IRpcRequest,
   IRpcResponse,
   RpcError,
   RpcErrorCodeEnum,
-  RpcResponse,
-  IRpcError
+  RpcResponse
 } from '@aperos/rpc-common'
-import {
-  BaseRpcMiddleware,
-  IBaseRpcMiddleware,
-  IBaseRpcServer
-} from './rpc_base'
+import { BaseRpcBackend, IBaseRpcBackend, IBaseRpcServer } from './rpc_base'
 
 export type RpcRequestHandler = (m: any) => Promise<object | IRpcError>
 
-export interface IRpcMiddlewareArgs {
+export interface IRpcBackendArgs {
   convertExceptionsToErrors?: boolean
 }
 
-export interface IRpcMiddleware extends IBaseRpcMiddleware {
+export interface IRpcBackend extends IBaseRpcBackend {
   handleRequest(request: IRpcRequest): Promise<IRpcResponse>
   getPropertyValue(name: string): Promise<any>
   setup(server: IBaseRpcServer): Promise<void>
 }
 
-const symRpcMethods = Symbol('RpcMiddleware.methods')
+const symRpcMethods = Symbol('RpcBackend.methods')
 
 type RpcMethodMap = Map<string, RpcRequestHandler>
 
@@ -32,11 +28,11 @@ const isErrorResult = (result: unknown): result is IRpcError => {
   return result instanceof RpcError
 }
 
-export class RpcMiddleware extends BaseRpcMiddleware implements IRpcMiddleware {
+export class RpcBackend extends BaseRpcBackend implements IRpcBackend {
   protected convertExceptionsToErrors: boolean
   protected server!: IBaseRpcServer
 
-  constructor(args: IRpcMiddlewareArgs = {}) {
+  constructor(args: IRpcBackendArgs = {}) {
     super()
     this.convertExceptionsToErrors = args.convertExceptionsToErrors === true
   }
@@ -103,9 +99,9 @@ export class RpcMiddleware extends BaseRpcMiddleware implements IRpcMiddleware {
 
 export function RpcMethod(methodName?: string) {
   return (target: Object, key: string, descriptor: PropertyDescriptor) => {
-    if (!(target instanceof RpcMiddleware)) {
+    if (!(target instanceof RpcBackend)) {
       throw new Error(
-        `Target class for @RpcMethod() must be and instance of RpcMiddleware`
+        `Target class for @RpcMethod() must be and instance of RpcBackend`
       )
     }
     const name = methodName || key

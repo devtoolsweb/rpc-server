@@ -1,13 +1,13 @@
 import { Server, createServer, ServerResponse, IncomingMessage } from 'http'
-import { IRpcServerOpts, RpcServer } from './rpc_server'
+import { IRpcServerArgs, RpcServer } from './rpc_server'
 
 export class RpcHttpServer extends RpcServer {
   static standardHeartbeatTimeout = 30000
 
   protected readonly server: Server
 
-  constructor (p: IRpcServerOpts) {
-    super(p)
+  constructor (args: IRpcServerArgs) {
+    super(args)
     this.server = createServer(async (request, response) => {
       if (request.method === 'OPTIONS') {
         response.setHeader('Access-Control-Allow-Credentials', 'true')

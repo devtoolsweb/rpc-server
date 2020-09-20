@@ -1,4 +1,4 @@
-export interface IRpcSessionOpts {
+export interface IRpcSessionArgs {
   timeout?: number
 }
 
@@ -15,16 +15,16 @@ export class RpcSession implements IRpcSession {
 
   private startTime: Date = new Date()
 
-  constructor (p: IRpcSessionOpts) {
-    const t = p.timeout || 0
+  constructor(args: IRpcSessionArgs) {
+    const t = args.timeout || 0
     this.timeout = t > 0 ? t : RpcSession.standardTimeout
   }
 
-  get isAlive () {
+  get isAlive() {
     return new Date().getTime() - this.startTime.getTime() < this.timeout
   }
 
-  reset () {
+  reset() {
     this.startTime = new Date()
     return this
   }

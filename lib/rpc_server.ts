@@ -1,17 +1,25 @@
 import {
   IRpcRequest,
-  IRpcResponseOpts,
+  IRpcResponseArgs,
   RpcError,
   RpcErrorCodeEnum,
   RpcResponse,
   RpcRequest
 } from '@aperos/rpc-common'
-import { EventEmitterMixin, EventEmitterConstructor } from '@aperos/event-emitter'
-import { BaseRpcServer, IBaseRpcMiddleware, IBaseRpcServer, IRpcServerEvents } from './rpc_base'
+import {
+  EventEmitterMixin,
+  EventEmitterConstructor
+} from '@aperos/event-emitter'
+import {
+  BaseRpcServer,
+  IBaseRpcMiddleware,
+  IBaseRpcServer,
+  IRpcServerEvents
+} from './rpc_base'
 import { IRpcMiddleware } from './rpc_middleware'
 import { IncomingMessage } from 'http'
 
-export interface IRpcServerOpts {
+export interface IRpcServerArgs {
   apiKeys?: string[]
   env?: Record<string, any>
   host?: string
@@ -25,7 +33,10 @@ export interface IRpcServer extends IBaseRpcServer {
 }
 
 export class RpcServer
-  extends EventEmitterMixin<IRpcServerEvents, EventEmitterConstructor<BaseRpcServer>>(BaseRpcServer)
+  extends EventEmitterMixin<
+    IRpcServerEvents,
+    EventEmitterConstructor<BaseRpcServer>
+  >(BaseRpcServer)
   implements IRpcServer {
   readonly apiKeys?: Set<string>
   readonly env: Record<string, any>
@@ -35,13 +46,13 @@ export class RpcServer
 
   private isInitialized = false
 
-  protected constructor(p: IRpcServerOpts) {
+  protected constructor(args: IRpcServerArgs) {
     super()
-    this.env = p.env || {}
-    this.host = p.host || 'localhost'
-    this.port = p.port
-    if (p.apiKeys) {
-      this.apiKeys = new Set<string>(p.apiKeys)
+    this.env = args.env || {}
+    this.host = args.host || 'localhost'
+    this.port = args.port
+    if (args.apiKeys) {
+      this.apiKeys = new Set<string>(args.apiKeys)
     }
   }
 
@@ -69,7 +80,7 @@ export class RpcServer
 
   protected async dispatchRequest(request: IRpcRequest) {
     const m = this.middlewares.get(request.domain)
-    const opts: IRpcResponseOpts = { id: request.id! }
+    const opts: IRpcResponseArgs = { id: request.id! }
     return m
       ? (m as IRpcMiddleware).handleRequest(request)
       : new RpcResponse({
@@ -81,9 +92,14 @@ export class RpcServer
         })
   }
 
-  protected async handleRequestData(httpRequest: IncomingMessage, requestData: string) {
+  protected async handleRequestData(
+    httpRequest: IncomingMessage,
+    requestData: string
+  ) {
     try {
-      const request = new RpcRequest(RpcRequest.makePropsFromJson(JSON.parse(requestData)))
+      const request = new RpcRequest(
+        RpcRequest.makePropsFromJson(JSON.parse(requestData))
+      )
       if (request.method === 'ping') {
         return new RpcResponse({ id: request.id!, result: 'pong' })
       }
