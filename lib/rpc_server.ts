@@ -6,10 +6,7 @@ import {
   RpcResponse,
   RpcRequest
 } from '@aperos/rpc-common'
-import {
-  EventEmitterMixin,
-  EventEmitterConstructor
-} from '@aperos/event-emitter'
+import { Constructor, EventEmitterMixin } from '@aperos/event-emitter'
 import {
   BaseRpcServer,
   IBaseRpcBackend,
@@ -33,10 +30,9 @@ export interface IRpcServer extends IBaseRpcServer {
 }
 
 export class RpcServer
-  extends EventEmitterMixin<
-    IRpcServerEvents,
-    EventEmitterConstructor<BaseRpcServer>
-  >(BaseRpcServer)
+  extends EventEmitterMixin<IRpcServerEvents, Constructor<BaseRpcServer>>(
+    BaseRpcServer
+  )
   implements IRpcServer {
   readonly apiKeys?: Set<string>
   readonly env: Record<string, any>
