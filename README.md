@@ -11,19 +11,13 @@ Warning: This package may contain experimental code that is under development an
 ## Installation
 
 ```
-yarn install @devtoolsweb/ts-goodies
+yarn install @devtoolsweb/rpc-server
 ```
 
 ## Usage
 
 See own description for each class.
 
-## Executing example server
-
-```
-yarn run test-server
-```
-
 ## License
 
-[MIT](https://github.com/devtoolsweb/rpc-server/blob/devtoolsweb/LICENSE)
+[MIT](https://github.com/devtoolsweb/rpc-server/blob/master/LICENSE)

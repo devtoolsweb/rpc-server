@@ -1,24 +1,30 @@
-- Clone the repository
+## Getting started
+
+### Clone the repository
+
 ```
-git clone  https://github.com/devtoolsweb/ts-goodies.git <project_name>
+git clone  https://github.com/devtoolsweb/rpc-server.git <project_name>
 ```
-- Install dependencies
+
+### Install dependencies
+
 ```
 cd <project_name>
 npm install
 ```
-- Build and run the project
+
+### Build and run the project
+
 ```
 npm start
 ```
-## Testing
-The tests are written in Jest
 
-### Running tests using NPM Scripts
-````
-npm run test
+## Executing example server
 
-````
+```
+yarn run test-server
+```
 
 # Todo
+
 Better tests
