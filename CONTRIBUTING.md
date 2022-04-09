@@ -1,5 +1,9 @@
 ## Getting started
 
+### Prepare
+
+Clone the "devtoolsweb-monorepo" repository and follow the instructions in CONTRIBUTING.md.
+
 ### Clone the repository
 
 ```
@@ -25,6 +29,6 @@ npm start
 yarn run test-server
 ```
 
-# Todo
+## Todo
 
 Better tests
