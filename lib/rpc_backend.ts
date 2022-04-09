@@ -5,7 +5,7 @@ import {
   RpcErrorCodeEnum,
   RpcResponse,
   IRpcError
-} from '@aperos/rpc-common'
+} from '@devtoolsweb/rpc-common'
 import { BaseRpcBackend, IBaseRpcBackend, IBaseRpcServer } from './rpc_base'
 
 export type RpcRequestHandler = (m: any) => Promise<object | IRpcError>

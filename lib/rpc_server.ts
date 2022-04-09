@@ -5,8 +5,8 @@ import {
   RpcErrorCodeEnum,
   RpcResponse,
   RpcRequest
-} from '@aperos/rpc-common'
-import { Constructor, EventEmitterMixin } from '@aperos/event-emitter'
+} from '@devtoolsweb/rpc-common'
+import { Constructor, EventEmitterMixin } from '@devtoolsweb/event-emitter'
 import {
   BaseRpcServer,
   IBaseRpcBackend,

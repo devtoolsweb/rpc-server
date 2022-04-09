@@ -1,5 +1,5 @@
 import { RpcBackend, RpcMethod } from '../../lib'
-import { IRpcError, RpcError, RpcErrorCodeEnum } from '@aperos/rpc-common'
+import { IRpcError, RpcError, RpcErrorCodeEnum } from '@devtoolsweb/rpc-common'
 
 interface ITestMethodParams {
   hello: string

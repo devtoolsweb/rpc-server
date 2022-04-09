@@ -1,4 +1,4 @@
-# @aperos/rpc-server
+# @devtoolsweb/rpc-server
 
 RPC server implementation with WebSockets support.
 

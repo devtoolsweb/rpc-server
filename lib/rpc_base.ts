@@ -1,5 +1,5 @@
-import { ITypedEventEmitter, IBaseEvents } from '@aperos/event-emitter'
-import { IRpcRequest, IRpcResponse } from '@aperos/rpc-common'
+import { ITypedEventEmitter, IBaseEvents } from '@devtoolsweb/event-emitter'
+import { IRpcRequest, IRpcResponse } from '@devtoolsweb/rpc-common'
 import { IncomingMessage } from 'http'
 
 export interface IBaseRpcBackend {
