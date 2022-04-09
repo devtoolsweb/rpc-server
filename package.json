@@ -1,10 +1,11 @@
 {
-  "author": "<aperos.dev@gmail.com>",
+  "author": "<elhombre.dev@gmail.com>",
   "dependencies": {
-    "@aperos/event-emitter": "*",
-    "@aperos/rpc-common": "*",
+    "@devtoolsweb/event-emitter": "*",
+    "@devtoolsweb/rpc-common": "*",
     "@types/node": "latest",
     "@types/ws": "latest",
+    "type-fest": "latest",
     "ws": "latest"
   },
   "description": "RPC server implementation with WebSockets support",
@@ -20,16 +21,16 @@
     "typescript": "latest"
   },
   "license": "MIT",
-  "name": "@aperos/rpc-server",
+  "name": "@devtoolsweb/rpc-server",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
   "scripts": {
     "build": "rollup -c",
     "build-production": "BUILD=production npm run build",
     "clean": "rm -rf build dist",
-    "test-server": "ts-node-dev examples/test_server",
+    "example-server": "ts-node-dev examples/test_server",
     "prepare": "npm run clean && npm run build-production"
   },
   "types": "dist/index.d.ts",
-  "version": "0.0.20"
+  "version": "0.1.1"
 }
