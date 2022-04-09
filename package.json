@@ -28,7 +28,7 @@
     "build": "rollup -c",
     "build-production": "BUILD=production npm run build",
     "clean": "rm -rf build dist",
-    "test-server": "ts-node-dev examples/test_server",
+    "example-server": "ts-node-dev examples/test_server",
     "prepare": "npm run clean && npm run build-production"
   },
   "types": "dist/index.d.ts",
