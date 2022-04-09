@@ -17,10 +17,10 @@ cd <project_name>
 npm install
 ```
 
-### Build and run the project
+### Build the project
 
 ```
-npm start
+npm build
 ```
 
 ## Executing example server
