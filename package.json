@@ -5,6 +5,7 @@
     "@devtoolsweb/rpc-common": "*",
     "@types/node": "latest",
     "@types/ws": "latest",
+    "type-fest": "latest",
     "ws": "latest"
   },
   "description": "RPC server implementation with WebSockets support",
