@@ -26,4 +26,4 @@ yarn run test-server
 
 ## License
 
-[MIT](https://github.com/devtoolsweb/rpc-server/blob/devtoolsweb/README.md)
+[MIT](https://github.com/devtoolsweb/rpc-server/blob/devtoolsweb/LICENSE)
