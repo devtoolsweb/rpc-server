@@ -2,6 +2,7 @@
   "author": "<elhombre.dev@gmail.com>",
   "dependencies": {
     "@devtoolsweb/event-emitter": "*",
+    "@devtoolsweb/node-helpers": "*",
     "@devtoolsweb/rpc-common": "*",
     "@types/node": "latest",
     "@types/ws": "latest",
