@@ -2,15 +2,18 @@
   "author": "<elhombre.dev@gmail.com>",
   "dependencies": {
     "@devtoolsweb/event-emitter": "*",
+    "@devtoolsweb/node-helpers": "*",
     "@devtoolsweb/rpc-common": "*",
     "@types/node": "latest",
     "@types/ws": "latest",
+    "reflect-metadata": "latest",
     "type-fest": "latest",
     "ws": "latest"
   },
   "description": "RPC server implementation with WebSockets support",
   "devDependencies": {
     "builtin-modules": "latest",
+    "pino-pretty": "latest",
     "rollup": "latest",
     "rollup-plugin-dts": "latest",
     "rollup-plugin-terser": "latest",
@@ -18,19 +21,24 @@
     "ts-node": "latest",
     "ts-node-dev": "latest",
     "tslint": "latest",
+    "typedi": "latest",
     "typescript": "latest"
   },
   "license": "MIT",
   "name": "@devtoolsweb/rpc-server",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/devtoolsweb/rpc-server.git"
+  },
   "scripts": {
     "build": "rollup -c",
     "build-production": "BUILD=production npm run build",
     "clean": "rm -rf build dist",
-    "example-server": "ts-node-dev examples/test_server",
+    "example-server": "ts-node-dev examples/test_server | pino-pretty -t 'SYS:standard' -i pid,hostname",
     "prepare": "npm run clean && npm run build-production"
   },
   "types": "dist/index.d.ts",
-  "version": "0.1.1"
+  "version": "0.1.2"
 }
