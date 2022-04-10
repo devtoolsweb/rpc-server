@@ -1,3 +1,6 @@
+import 'reflect-metadata'
+import Container from 'typedi'
 import { Server } from './server'
 
-new Server().start()
+const server = Container.get(Server)
+server.start()
