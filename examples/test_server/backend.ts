@@ -19,7 +19,7 @@ export class BaseBackend extends RpcBackend {
 
 }
 
-export class TestBackend extends BaseBackend {
+export class Backend extends BaseBackend {
 
     @RpcMethod()
     async calcSum (p: ICalcSumParams): Promise<number> {
